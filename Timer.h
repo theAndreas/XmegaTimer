@@ -37,8 +37,12 @@
  * TCC4 is off by default, because the xmegaForArduino core drives tone() and analogWrite() with it
  * and tone() defines TCC4_OVF_vect itself; also its channels A and B sit on PC0/PC1, the TWI pins.
  * TCD5 cannot be selected at all, see the note above TimerC5. */
-#define TIMER_USE_TCC4                          STD_OFF
-#define TIMER_USE_TCC5                          STD_ON
+#ifndef TIMER_USE_TCC4
+    #define TIMER_USE_TCC4                      STD_OFF
+#endif
+#ifndef TIMER_USE_TCC5
+    #define TIMER_USE_TCC5                      STD_ON
+#endif
 
 
 /******************************************************************************************************************************************************
@@ -53,6 +57,7 @@ struct TimerC4
     static PORT_t& getPort() { return PORTC; }
     static constexpr uint8_t NumberOfChannels{4u};
     static constexpr uint8_t FirstPin{0u};
+    static constexpr bool Enabled{TIMER_USE_TCC4 == STD_ON};
 };
 
 /* TC5: two compare channels, OC5A/OC5B on PC4/PC5 - the SPI SS and SCK pins.
@@ -67,6 +72,7 @@ struct TimerC5
     static PORT_t& getPort() { return PORTC; }
     static constexpr uint8_t NumberOfChannels{2u};
     static constexpr uint8_t FirstPin{4u};
+    static constexpr bool Enabled{TIMER_USE_TCC5 == STD_ON};
 };
 
 
@@ -133,15 +139,28 @@ class Timer
     static_assert(TC4_OVFIF_bm == TC5_OVFIF_bm, "TC4/TC5 overflow flag differs");
     static_assert(TC4_CCAMODE_gm == TC5_CCAMODE_gm, "TC4/TC5 channel mode differs");
 
+    /* Without this a timer switched off in the configuration above still compiles here and only
+     * fails at the link, as an undefined reference to every member function used */
+    static_assert(TimerTraits::Enabled, "this timer is switched off - see TIMER_USE_TCC4/TIMER_USE_TCC5");
+
+    /* setPeriod() and read() convert with whole timer cycles per half and per whole microsecond */
+    static_assert(F_CPU % 2000000uL == 0u, "F_CPU has to be a multiple of 2 MHz");
+
     static constexpr uint8_t ChannelModeWidth{2u};
+    static constexpr uint8_t PwmDutyBits{10u};
 
     static Timer Instance;
 
     StateType State;
     TimerClockSelectType ClockSelectBitGroup;
     TimerIsrCallbackF_void TimerOverflowCallback;
+    /* What PER and the compare channels are meant to hold. Kept here rather than read back from the
+     * registers, because a value on its way through a buffer register is not in them until BOTTOM,
+     * and because a duty is a fraction of the period that has to be applied again when it changes. */
+    uint16_t Top;
+    uint16_t PwmDuty[TimerTraits::NumberOfChannels];
 
-    constexpr Timer() : State(STATE_NONE), ClockSelectBitGroup(TIMER_REG_CS_NO_PRESCALER), TimerOverflowCallback(nullptr) { }
+    constexpr Timer() : State(STATE_NONE), ClockSelectBitGroup(TIMER_REG_CS_NO_PRESCALER), TimerOverflowCallback(nullptr), Top(0xFFFFu), PwmDuty{} { }
 
     // functions
     static typename TimerTraits::RegisterType& getTimer() { return TimerTraits::getTimer(); }
@@ -154,6 +173,15 @@ class Timer
     }
     static constexpr uint8_t toChannelModeCompare(TimerChannelType Channel) {
         return static_cast<uint8_t>(TC45_CCAMODE_COMP_gc << (Channel * ChannelModeWidth));
+    }
+    static constexpr uint16_t toCompareValue(uint16_t sTop, uint16_t Duty) {
+        return static_cast<uint16_t>((static_cast<uint32_t>(sTop) * Duty) >> PwmDutyBits);
+    }
+    /* Shifted before it is divided: the other way round the truncation is scaled up by the
+     * prescaler, and at 1024 read() moved in steps of a millisecond where a tick is 32 us.
+     * 2 * 0xFFFF << 10 is still well inside 32 bit. */
+    static constexpr uint32_t toMicroseconds(uint32_t TimerCycles, TimerClockSelectType ClockSelect) {
+        return (TimerCycles << toPrescalerShift(ClockSelect)) / (F_CPU / 1000000uL);
     }
     static constexpr uint8_t toPrescalerShift(TimerClockSelectType ClockSelect) {
         switch(ClockSelect) {
@@ -169,6 +197,8 @@ class Timer
 
     TimerCountDirection getCountingDirection();
     void setClockSelect(TimerClockSelectType);
+    void setCompareBuffer(TimerChannelType);
+    void loadPeriodAndCompare();
     StdReturnType enablePwmChannel(TimerChannelType, uint16_t);
     StdReturnType disablePwmChannel(TimerChannelType);
     StdReturnType setPwmDutyChannel(TimerChannelType, uint16_t);
