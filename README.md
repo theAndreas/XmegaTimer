@@ -36,7 +36,15 @@ does not have — `enablePwm<TIMER_CHANNEL_C>` on a TC5 — is a compile error.
   callback. `attachInterrupt()` enables the low level in the PMIC.
 - TC4/TC5 do **not** clear their interrupt flag when the vector runs; the ISR does it.
 - Duty values are written to the `CCxBUF` registers and take effect at the next BOTTOM.
-- `read()` returns the time since the last overflow in microseconds.
+- A duty is a fraction of the period and stays one: `setPeriod()` goes through `PERBUF` and
+  recomputes every channel's `CCxBUF` with it, so the new period and the PWM that fits it start
+  at the same BOTTOM. Writing `PER` outright could leave the counter above the new TOP, and it
+  would then run round `0xFFFF` once before the shorter period began.
+- `start()` loads `PER` and the compare values directly while the timer has no clock, so the first
+  period is already the configured one rather than waiting a period for the buffers.
+- `read()` returns the time since the last overflow in microseconds, to one timer tick.
+- `F_CPU` has to be a multiple of 2 MHz. Selecting a timer whose `TIMER_USE_*` is off is a compile
+  error; both switches can be set with `-D` instead of editing `Timer.h`.
 
 ## Building
 
