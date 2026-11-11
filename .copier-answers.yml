@@ -1,0 +1,19 @@
+# The answers this project was made from, which `copier update` reads. Change one with
+# `copier update --data name=value`, not here.
+_commit: v0.5.0
+_src_path: gh:theAndreas/embedded-cpp-template
+arduino_core: XMegaForArduino:avr@0.9.2
+author: Andreas Burnickl
+copyright_year: 2026
+description: Periodic interrupt and PWM on the 16-bit timers TC4 and TC5 of the ATxmega
+    E5.
+fqbn: XMegaForArduino:avr:xmega32e5
+github_owner: theAndreas
+license: GPL-3.0-or-later
+macro_prefix: XMEGATIMER
+namespace: xmega_timer
+project_name: XmegaTimer
+simavr_frequency: 32000000
+simavr_mcu: ''
+skeleton: false
+url: https://github.com/theAndreas/XmegaTimer
