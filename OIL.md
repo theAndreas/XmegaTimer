@@ -10,7 +10,7 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 
 | # | Item | Depends on | Status | PR |
 |---|------|------------|--------|----|
-| 1 | On the template embedded-cpp-template | – | in progress | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
+| 1 | On the template embedded-cpp-template | – | done | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
 | 2 | What the template is to take over from 1 | 1 | open | |
 | 3 | A new prescaler waits for BOTTOM as the period does | 1 | open | |
 | 4 | Version 2.0.0: a namespace, constants for macros, the template's checks | 3 | open | |
