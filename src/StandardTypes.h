@@ -1,272 +1,59 @@
-/******************************************************************************************************************************************************
- *  COPYRIGHT
- *  ---------------------------------------------------------------------------------------------------------------------------------------------------
- *  \verbatim
- *  Copyright (c) Andreas Burnickl                                                                                                 All rights reserved.
+// Copyright 2026 Andreas Burnickl
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/*!
+ * \file
+ * \brief The return type, the switches and the bit group functions that
+ *        XmegaTimer shares with the author's older libraries.
  *
- *  \endverbatim
- *  ---------------------------------------------------------------------------------------------------------------------------------------------------
- *  FILE DESCRIPTION
- *  -------------------------------------------------------------------------------------------------------------------------------------------------*/
-/**     \file       StandardTypes.h
- *      \brief      Main header file of standard types library
- *
- *      \details    Library with standard types
- *
- *
-******************************************************************************************************************************************************/
-#ifndef _STANDARD_TYPES_H_
+ * The same file comes with those libraries, under the same guard, so that a
+ * sketch that includes two of them gets its definitions once. Of what it held
+ * there, only what XmegaTimer uses is left. A later version replaces it by
+ * types of the namespace xmega_timer.
+ */
+
+// The guard the other copies of this file have; renamed, a sketch with one of
+// them would define E_OK twice.
+#ifndef _STANDARD_TYPES_H_  // NOLINT(build/header_guard)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _STANDARD_TYPES_H_
 
-/******************************************************************************************************************************************************
- * INCLUDES
-******************************************************************************************************************************************************/
 #include <stdint.h>
-#include <limits.h>
-#include <stddef.h>
 
-/******************************************************************************************************************************************************
- *  GLOBAL CONSTANT MACROS
-******************************************************************************************************************************************************/
-/* standard type for configuration */
-#define STD_ON                  1u
-#define STD_OFF                 0u
+/*! \brief A switch of the configuration that is on. */
+#define STD_ON 1u
+/*! \brief A switch of the configuration that is off. */
+#define STD_OFF 0u
 
-#define STD_NULL_CHARACTER      '\0'
-
-/* assembler NOPs */
-#define STD_NOP_1               "nop      \n\t"
-#define STD_NOP_2               "rjmp .+0 \n\t"
-#define STD_NOP_4               STD_NOP_2 STD_NOP_2
-#define STD_NOP_8               STD_NOP_4 STD_NOP_4
-#define STD_NOP_16              STD_NOP_8 STD_NOP_8
-
-/* Dummy statement to prevent compiler warnings unused parameter */
-#define UNUSED(x) (void)(x)
-
-/******************************************************************************************************************************************************
- *  GLOBAL FUNCTION MACROS
-******************************************************************************************************************************************************/
-/* bit */
-#define BIT_VALUE(Bit) \
-    ((UINT64_C(1) << (Bit))
-
-/* bit mask */
-#define BIT_MASK(Len) \
-    (BIT_VALUE(Len) - 1)
-
-/* set bit */
-#define SET_BIT(Var, Bit) \
-    ((Var) |= (UINT64_C(1) << (Bit)))
-
-/* clear bit */
-#define CLEAR_BIT(Var, Bit) \
-    ((Var) &= ~(UINT64_C(1) << (Bit)))
-
-/* toggle bit */
-#define TOGGLE_BIT(Var, Bit) \
-    ((Var) ^= (UINT64_C(1) << (Bit)))
-
-/* read bit */
-#define READ_BIT(Var, Bit) \
-    (((Var) & (UINT64_C(1) << (Bit))) >> (Bit))
-
-/* write bit */
-#define WRITE_BIT(Var, Bit, Value) \
-    ((Var) = ((Var) & ~(UINT64_C(1) << (Bit))) | ((Value) << (Bit)))
-
-/* is bit set */
-#define IS_BIT_SET(Var, Bit) (!!((Var) & (UINT64_C(1) << (Bit))))
-
-/* is bit cleared */
-#define IS_BIT_CLEARED(Var, Bit) !IS_BIT_SET(Var, Bit)
-
-/* read bit group */
-#define READ_BIT_GROUP(Var, BitGroupMask, BitGroupPosition) \
-    (((Var) & ((BitGroupMask) << (BitGroupPosition))) >> (BitGroupPosition))
-
-/* write bit group */
-#define WRITE_BIT_GROUP(Var, BitGroupMask, BitGroupPosition, Value) \
-    ((Var) = (((Var) & ~((BitGroupMask) << (BitGroupPosition))) | (((Value) & (BitGroupMask)) << (BitGroupPosition))))
-
-
-/* binary to decimal */
-/*
-#define B(x) ( \
-(0##x >>  0 & 0001) | \
-(0##x >>  2 & 0002) | \
-(0##x >>  4 & 0004) | \
-(0##x >>  6 & 0010) | \
-(0##x >>  8 & 0020) | \
-(0##x >> 10 & 0040) | \
-(0##x >> 12 & 0100) | \
-(0##x >> 14 & 0200) )
-*/
-
-/******************************************************************************************************************************************************
- *  GLOBAL DATA TYPES AND STRUCTURES
-******************************************************************************************************************************************************/
-/* standard return type for functions */
+/*! \brief Whether a function did what it was asked. */
 enum StdReturnType {
-    E_OK = 0u,
-    E_NOT_OK = 1u
+  E_OK = 0u,    /*!< It did. */
+  E_NOT_OK = 1u /*!< It refused, and changed nothing unless it says so. */
 };
 
-/******************************************************************************************************************************************************
- *  GLOBAL INLINE FUNCTION PROTOTYPES
-******************************************************************************************************************************************************/
-template <typename ReturnType, typename BitType> static inline ReturnType bitValue(BitType);
-template <typename ReturnType, typename LengthType> static inline ReturnType bitMask(LengthType);
-template <typename VarType> static inline VarType setBit(VarType, uint8_t);
-template <typename VarType> static inline VarType clearBit(VarType, uint8_t);
-template <typename VarType> static inline VarType toggleBit(VarType, uint8_t);
-template <typename VarType> static inline bool readBit(VarType, uint8_t);
-template <typename VarType> static inline VarType writeBit(VarType, uint8_t, bool);
-template <typename VarType> static inline bool isBitSet(VarType, uint8_t);
-template <typename VarType> static inline bool isBitCleared(VarType, uint8_t);
-template <typename VarType, typename PositionType> static inline VarType shiftLeft(VarType, PositionType);
-template <typename VarType, typename PositionType> static inline VarType shiftRight(VarType, PositionType);
-template <typename VarType, typename MaskType, typename GroupType> static inline VarType readBitGroup(VarType, MaskType, GroupType, bool = true);
-template <typename VarType, typename MaskType, typename GroupType, typename ValType> static inline void writeBitGroup(VarType&, MaskType, GroupType, ValType, bool = true);
-template <typename VarType, typename MaskType> static inline VarType readBitGroup(VarType, MaskType);
-template <typename VarType, typename MaskType, typename ValType> static inline void writeBitGroup(VarType&, MaskType, ValType);
-template <typename T> uint8_t digitsOfNumber(T Number, unsigned = 10);
-
-/******************************************************************************************************************************************************
- *  GLOBAL INLINE FUNCTIONS
-******************************************************************************************************************************************************/
-/* bit */
-template <typename ReturnType, typename BitType>
-static inline ReturnType bitValue(BitType Bit)
-{
-    return UINT64_C(1) << Bit;
-}
-
-/* bit mask */
-template <typename ReturnType, typename LengthType>
-static inline ReturnType bitMask(LengthType Length)
-{
-    return bitValue(Length) - 1u;
-}
-
-/* set bit */
-template <typename VarType>
-static inline VarType setBit(VarType Var, uint8_t Bit)
-{
-    return Var | (UINT64_C(1) << Bit);
-}
-
-/* clear bit */
-template <typename VarType>
-static inline VarType clearBit(VarType Var, uint8_t Bit)
-{
-    return Var & ~(UINT64_C(1) << Bit);
-}
-
-/* toggle bit */
-template <typename VarType>
-static inline VarType toggleBit(VarType Var, uint8_t Bit)
-{
-    return Var ^ ~(UINT64_C(1) << Bit);
-}
-
-/* read bit */
-template <typename VarType>
-static inline bool readBit(VarType Var, uint8_t Bit)
-{
-    return (Var & (UINT64_C(1) << Bit)) >> Bit;
-}
-
-/* write bit */
-template <typename VarType>
-static inline VarType writeBit(VarType Var, uint8_t Bit, bool Value)
-{
-    return (Var & ~(UINT64_C(1) << Bit)) | (Value << Bit);
-}
-
-/* is bit set */
-template <typename VarType>
-static inline bool isBitSet(VarType Var, uint8_t Bit)
-{
-    return Var & (UINT64_C(1) << Bit);
-}
-
-/* is bit cleared */
-template <typename VarType>
-static inline bool isBitCleared(VarType Var, uint8_t Bit)
-{
-    return !isBitSet(Var, Bit);
-}
-
-/* shift left */
-template <typename VarType, typename PositionType>
-static inline VarType shiftLeft(VarType Var, PositionType Position)
-{
-    return Var << Position;
-}
-
-/* shift right */
-template <typename VarType, typename PositionType>
-static inline VarType shiftRight(VarType Var, PositionType Position)
-{
-    return Var >> Position;
-}
-
-/* read bit group */
-template <typename VarType, typename MaskType, typename GroupType>
-static inline VarType readBitGroup(VarType Var, MaskType BitGroupMask, GroupType BitGroupPosition, bool ShiftBitGroupMask)
-{
-    if(ShiftBitGroupMask) {
-        return (Var & (static_cast<VarType>(BitGroupMask) << BitGroupPosition)) >> BitGroupPosition;
-    } else {
-        return (Var & static_cast<VarType>(BitGroupMask)) >> BitGroupPosition;
-    }
-
-}
-
-/* write bit group */
-template <typename VarType, typename MaskType, typename GroupType, typename ValType>
-static inline void writeBitGroup(VarType& Var, MaskType BitGroupMask, GroupType BitGroupPosition, ValType Value, bool ShiftBitGroupMask)
-{
-    if(ShiftBitGroupMask) {
-        Var = (Var & ~(static_cast<VarType>(BitGroupMask) << BitGroupPosition)) | (static_cast<VarType>(Value & BitGroupMask) << BitGroupPosition);
-    } else {
-        Var = (Var & ~(static_cast<VarType>(BitGroupMask))) | (static_cast<VarType>(Value & BitGroupMask) << BitGroupPosition);
-    }
-}
-
-/* read bit group */
+/*!
+ * \brief The bits `BitGroupMask` of `Var`, in place.
+ * \param Var the variable or register
+ * \param BitGroupMask the bits of the group, in place
+ * \return `Var` with every bit outside the group cleared
+ */
 template <typename VarType, typename MaskType>
-static inline VarType readBitGroup(VarType Var, MaskType BitGroupMask)
-{
-    return Var & (static_cast<VarType>(BitGroupMask));
+static inline VarType readBitGroup(VarType Var, MaskType BitGroupMask) {
+  return Var & (static_cast<VarType>(BitGroupMask));
 }
 
-/* write bit group */
+/*!
+ * \brief Sets the bits `BitGroupMask` of `Var` to those of `Value`, and leaves
+ *        the others as they are.
+ * \param Var the variable or register
+ * \param BitGroupMask the bits of the group, in place
+ * \param Value the value of the group, in place
+ */
 template <typename VarType, typename MaskType, typename ValType>
-static inline void writeBitGroup(VarType& Var, MaskType BitGroupMask, ValType Value)
-{
-    Var = (Var & ~(static_cast<VarType>(BitGroupMask))) | (static_cast<VarType>(Value & BitGroupMask));
+static inline void writeBitGroup(VarType& Var, MaskType BitGroupMask,
+                                 ValType Value) {
+  Var = (Var & ~(static_cast<VarType>(BitGroupMask))) |
+        (static_cast<VarType>(Value & BitGroupMask));
 }
 
-template <typename T>
-size_t numberOfBits()
-{
-    return sizeof (T) * (CHAR_BIT);
-}
-
-template <typename T>
-uint8_t digitsOfNumber(T Number, unsigned Base)
-{
-    T numberOfDigits = 0u;
-
-    do { Number /= Base; numberOfDigits++; }
-    while (Number != 0u);
-
-    return numberOfDigits;
-}
-
-#endif
-/******************************************************************************************************************************************************
- *  E N D   O F   F I L E
-******************************************************************************************************************************************************/
+#endif  // _STANDARD_TYPES_H_
