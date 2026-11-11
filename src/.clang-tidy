@@ -1,0 +1,15 @@
+---
+# XmegaTimer's code from before the template, until a later version rewrites it in the namespace
+# xmega_timer (OIL 3): its names, macros, typedefs and C enums are what these groups report.
+# They come on with that version, each with what it finds fixed, and this file goes then. The
+# tests and the mock are new and keep every check.
+InheritParentConfig: true
+Checks: >
+  -bugprone-assignment-in-if-condition,
+  -bugprone-signed-bitwise,
+  -cppcoreguidelines-*,
+  -google-*,
+  -misc-*,
+  -modernize-*,
+  -performance-enum-size,
+  -readability-*
