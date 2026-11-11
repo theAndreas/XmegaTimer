@@ -226,7 +226,8 @@ class Timer {
   void setClockSelect(TimerClockSelectType);
   void setCompareBuffer(TimerChannelType);
   void loadPeriodAndCompare();
-  void restartCounting();
+  void restartCounting(TimerClockSelectType);
+  void takeOverClockSelect();
   StdReturnType enablePwmChannel(TimerChannelType, uint16_t);
   StdReturnType disablePwmChannel(TimerChannelType);
   StdReturnType setPwmDutyChannel(TimerChannelType, uint16_t);
@@ -265,7 +266,8 @@ class Timer {
    * A new prescaler cannot wait for BOTTOM: a running timer starts again from
    * 0 with the new period and compare values, as start() does. The interval in
    * which it changes then lasts what was counted of it plus the new period, and
-   * the PWM begins its new period at that moment.
+   * the PWM begins its new period at that moment. A stopped timer is set back
+   * to 0 the same way and stays stopped; resume() begins the new period.
    *
    * \param Microseconds the period, more than 0 and less than 2 * 65536 * 1024
    *                     cycles of F_CPU, 4194304 at 32 MHz
@@ -290,6 +292,10 @@ class Timer {
 
   /*!
    * \brief Lets a stopped timer go on where it stopped.
+   *
+   * Where setPeriod() changed the prescaler meanwhile, the timer was set back
+   * to 0, and it begins the new period instead.
+   *
    * \return E_NOT_OK if the timer was not stopped.
    */
   StdReturnType resume();

@@ -45,7 +45,8 @@ does not have — `enablePwm<TIMER_CHANNEL_C>` on a TC5 — is a compile error.
 - A period that needs another prescaler cannot wait for BOTTOM, as the prescaler has no buffer:
   `setPeriod()` restarts a running timer from 0 with the new period and duty instead. The interval
   in which it changes lasts what was counted of it plus the new period, and the PWM begins its
-  new period at that moment.
+  new period at that moment. A stopped timer is set back to 0 the same way and stays stopped;
+  `resume()` begins the new period.
 - `start()` loads `PER` and the compare values directly while the timer has no clock, so the first
   period is already the configured one rather than waiting a period for the buffers.
 - `read()` returns the time since the last overflow in microseconds, to one timer tick.
