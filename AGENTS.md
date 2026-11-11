@@ -99,3 +99,26 @@ exception goes at the end of a list, with its reason.
 
 <!-- What an agent has to know of this project beyond the template: its design, its terms, what
      not to touch. The template wrote this section once; an update keeps what is added here. -->
+
+XmegaTimer drives the 16-bit Timer/Counters TC4 and TC5 of the ATxmega E5, dual-slope with the
+overflow at BOTTOM: the period sets PER and the prescaler, the overflow calls the sketch's
+callback, and each compare channel gives a phase-correct PWM. `OIL.md` is the open issue list:
+what is planned, in which order, and why. A pull request that works on an item sets its status and
+links itself in the same PR.
+
+- **The board is a third party's**: XMegaForArduino's ATxmega32E5 at 32 MHz, whose platform takes
+  avr-gcc from `arduino:avr`; `make setup` installs both. No simavr: it does not know the chip, so
+  there is no SelfCheck, and nothing has run on the chip yet (OIL 5).
+- **The code is from before the template, until version 2.0.0** (OIL 4): the class template
+  `Timer<TimerC4>` and `Timer<TimerC5>` with a singleton each, `StdReturnType` from
+  `src/StandardTypes.h`, switches as `#define`. `src/.clang-tidy` and `examples/.clang-tidy` turn
+  off the groups it fails until then; new code, the tests and the mock, keeps every check.
+- **TCC4 is off by default**, as the core's `tone()` and `analogWrite()` use it; the variant
+  `tcc4` switches it on, in the tests and for the board. TCD5 is the core's `millis()` and is
+  never offered.
+- **The tests need a process each**: `init()` takes the singleton once, and no test can begin
+  from a new one. ctest runs each test on its own, as `gtest_discover_tests()` adds them; the
+  fixture fails in `SetUp()` otherwise.
+- **The mock of the registers**, `test/mock/avr/io.h`, has them in the order of avr-libc's
+  `iox32e5.h`, as the library reaches CCA..CCD and their buffers by index; keep that order.
+  CTRLGSET records the commands and holds the direction. Nothing counts: a test sets CNT.

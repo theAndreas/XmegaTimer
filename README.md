@@ -5,7 +5,7 @@ Periodic interrupt and PWM on the 16-bit Timer/Counters TC4 and TC5 of the
 xmegaForArduino core.
 
 ```cpp
-#include "Timer.h"
+#include <XmegaTimer.h>
 
 static void onTick() { /* every 1000 us */ }
 
@@ -14,6 +14,8 @@ timer.init(1000u, onTick);
 timer.enablePwm<Timer<TimerC5>::TIMER_CHANNEL_A>(512u);   // 50 %, duty 0 .. 1023
 timer.start();
 ```
+
+This is [examples/Basics](examples/Basics/Basics.ino).
 
 ## Which timer
 
@@ -39,7 +41,9 @@ does not have — `enablePwm<TIMER_CHANNEL_C>` on a TC5 — is a compile error.
 - A duty is a fraction of the period and stays one: `setPeriod()` goes through `PERBUF` and
   recomputes every channel's `CCxBUF` with it, so the new period and the PWM that fits it start
   at the same BOTTOM. Writing `PER` outright could leave the counter above the new TOP, and it
-  would then run round `0xFFFF` once before the shorter period began.
+  would then run round `0xFFFF` once before the shorter period began. A new prescaler, though,
+  takes effect at once, so the rest of the current period runs at the new rate
+  ([OIL 3](https://github.com/theAndreas/XmegaTimer/blob/main/OIL.md)).
 - `start()` loads `PER` and the compare values directly while the timer has no clock, so the first
   period is already the configured one rather than waiting a period for the buffers.
 - `read()` returns the time since the last overflow in microseconds, to one timer tick.
@@ -48,12 +52,26 @@ does not have — `enablePwm<TIMER_CHANNEL_C>` on a TC5 — is a compile error.
 
 ## Building
 
-The three files are the whole library. Built and linked with avr-gcc 14.3 for
-`atxmega32e5`:
+XmegaTimer is an Arduino library for the ATxmega32E5 of
+[XMegaForArduino](https://github.com/XMegaForArduino), whose core takes avr-gcc from the Arduino
+AVR core. With arduino-cli:
 
 ```bash
-avr-g++ -mmcu=atxmega32e5 -std=gnu++17 -Os -DF_CPU=32000000L -fno-threadsafe-statics \
-        -Wall -Wextra -I. -c Timer.cpp
+arduino-cli core install XMegaForArduino:avr@0.9.2 \
+  --additional-urls https://raw.githubusercontent.com/XMegaForArduino/IDE/master/package_XMegaForArduino_index.json
+arduino-cli core install arduino:avr@1.8.8
+arduino-cli compile --fqbn XMegaForArduino:avr:xmega32e5 --library . examples/Basics
 ```
 
 Not yet run on hardware.
+
+## Development
+
+XmegaTimer is built and checked as the projects made from
+[embedded-cpp-template](https://github.com/theAndreas/embedded-cpp-template) are: `make` lists
+every build and check, `make check` is what CI runs. [OIL.md](https://github.com/theAndreas/XmegaTimer/blob/main/OIL.md) is what is planned, and
+[AGENTS.md](https://github.com/theAndreas/XmegaTimer/blob/main/AGENTS.md) what a contributor has to know.
+
+## Licence
+
+GPL-3.0-or-later, see [LICENSE](LICENSE).
