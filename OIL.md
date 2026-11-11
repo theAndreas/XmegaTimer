@@ -10,9 +10,9 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 
 | # | Item | Depends on | Status | PR |
 |---|------|------------|--------|----|
-| 1 | On the template embedded-cpp-template | – | in progress | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
+| 1 | On the template embedded-cpp-template | – | done | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
 | 2 | What the template is to take over from 1 | 1 | open | |
-| 3 | A new prescaler waits for BOTTOM as the period does | 1 | open | |
+| 3 | A new prescaler waits for BOTTOM as the period does | 1 | in progress | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
 | 4 | Version 2.0.0: a namespace, constants for macros, the template's checks | 3 | open | |
 | 5 | Run on an ATxmega32E5 | 1 | open | |
 
@@ -59,6 +59,11 @@ new period and its PWM start at the same BOTTOM, which holds only while the pres
 
 Shown by a test first, then the prescaler set from the overflow interrupt at that BOTTOM, or the
 timer restarted where the prescaler changes; which, to decide with the fix.
+
+*Decided:* the restart. It needs no interrupt, which a timer without a callback has off, no
+second prescaler for `read()` until BOTTOM, and has no race with a BOTTOM in the middle of
+`setPeriod()`; the interval of the change lasts what was counted of it plus the new period. A
+stopped timer had the same fault through `resume()`: it is set back to 0 and stays stopped.
 
 ### 4 Version 2.0.0: a namespace, constants for macros, the template's checks
 

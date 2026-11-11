@@ -147,16 +147,92 @@ TEST_F(TimerTest, SetPeriodOfAReadyTimerLeavesItsClockOff) {
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
 }
 
-TEST_F(TimerTest, SetPeriodOfARunningTimerGoesThroughTheBuffer) {
+TEST_F(TimerTest,
+       SetPeriodOfARunningTimerKeepingItsPrescalerGoesThroughTheBuffer) {
+  ASSERT_EQ(Tcc5().init(1000U), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+
+  EXPECT_EQ(Tcc5().setPeriod(2000U), E_OK);
+
+  EXPECT_EQ(TCC5.PERBUF, 32000U);
+  EXPECT_EQ(TCC5.PER, 16000U);
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
+  EXPECT_EQ(TCC5.CTRLGSET.Commands(),
+            (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc}));
+}
+
+TEST_F(TimerTest, SetPeriodOfARunningTimerWithANewPrescalerRestartsItAtOnce) {
   ASSERT_EQ(Tcc5().init(1000U), E_OK);
   ASSERT_EQ(Tcc5().start(), E_OK);
 
   EXPECT_EQ(Tcc5().setPeriod(10000U), E_OK);
 
-  // The prescaler at once, the period at the next BOTTOM.
+  EXPECT_EQ(TCC5.PER, 40000U);
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV4_gc);
-  EXPECT_EQ(TCC5.PERBUF, 40000U);
+  EXPECT_EQ(TCC5.CTRLGSET.Commands(),
+            (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc,
+                                  TC45_CMD_RESTART_gc}));
+}
+
+TEST_F(TimerTest, SetPeriodOfARunningTimerWithANewPrescalerLoadsTheDutyAtOnce) {
+  ASSERT_EQ(Tcc5().init(1000U), E_OK);
+  ASSERT_EQ(Tcc5().enablePwm<Tc5::TIMER_CHANNEL_A>(512U), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+
+  EXPECT_EQ(Tcc5().setPeriod(10000U), E_OK);
+
+  EXPECT_EQ(TCC5.CCA, 20000U);
+}
+
+TEST_F(TimerTest,
+       SetPeriodOfAStoppedTimerKeepingItsPrescalerGoesThroughTheBuffer) {
+  ASSERT_EQ(Tcc5().init(1000U), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+  Tcc5().stop();
+
+  EXPECT_EQ(Tcc5().setPeriod(2000U), E_OK);
+
+  EXPECT_EQ(TCC5.PERBUF, 32000U);
   EXPECT_EQ(TCC5.PER, 16000U);
+  EXPECT_EQ(TCC5.CTRLGSET.Commands(),
+            (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc}));
+}
+
+TEST_F(TimerTest, SetPeriodOfAStoppedTimerWithANewPrescalerSetsItBackStopped) {
+  ASSERT_EQ(Tcc5().init(1000U), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+  Tcc5().stop();
+
+  EXPECT_EQ(Tcc5().setPeriod(10000U), E_OK);
+
+  EXPECT_EQ(TCC5.PER, 40000U);
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
+  EXPECT_EQ(TCC5.CTRLGSET.Commands(),
+            (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc,
+                                  TC45_CMD_RESTART_gc}));
+}
+
+TEST_F(TimerTest, SetPeriodOfAStoppedTimerWithANewPrescalerLoadsTheDutyAtOnce) {
+  ASSERT_EQ(Tcc5().init(1000U), E_OK);
+  ASSERT_EQ(Tcc5().enablePwm<Tc5::TIMER_CHANNEL_A>(512U), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+  Tcc5().stop();
+
+  EXPECT_EQ(Tcc5().setPeriod(10000U), E_OK);
+
+  EXPECT_EQ(TCC5.CCA, 20000U);
+}
+
+TEST_F(TimerTest, ResumeAfterANewPrescalerCountsTheNewPeriod) {
+  ASSERT_EQ(Tcc5().init(1000U), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+  Tcc5().stop();
+  ASSERT_EQ(Tcc5().setPeriod(10000U), E_OK);
+
+  EXPECT_EQ(Tcc5().resume(), E_OK);
+
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV4_gc);
+  EXPECT_EQ(TCC5.PER, 40000U);
 }
 
 TEST_F(TimerTest, StartBeforeInitIsRefused) {

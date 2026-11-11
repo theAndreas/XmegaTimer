@@ -41,9 +41,12 @@ does not have — `enablePwm<TIMER_CHANNEL_C>` on a TC5 — is a compile error.
 - A duty is a fraction of the period and stays one: `setPeriod()` goes through `PERBUF` and
   recomputes every channel's `CCxBUF` with it, so the new period and the PWM that fits it start
   at the same BOTTOM. Writing `PER` outright could leave the counter above the new TOP, and it
-  would then run round `0xFFFF` once before the shorter period began. A new prescaler, though,
-  takes effect at once, so the rest of the current period runs at the new rate
-  ([OIL 3](https://github.com/theAndreas/XmegaTimer/blob/main/OIL.md)).
+  would then run round `0xFFFF` once before the shorter period began.
+- A period that needs another prescaler cannot wait for BOTTOM, as the prescaler has no buffer:
+  `setPeriod()` restarts a running timer from 0 with the new period and duty instead. The interval
+  in which it changes lasts what was counted of it plus the new period, and the PWM begins its
+  new period at that moment. A stopped timer is set back to 0 the same way and stays stopped;
+  `resume()` begins the new period.
 - `start()` loads `PER` and the compare values directly while the timer has no clock, so the first
   period is already the configured one rather than waiting a period for the buffers.
 - `read()` returns the time since the last overflow in microseconds, to one timer tick.
