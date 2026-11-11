@@ -183,16 +183,15 @@ class Timer
     static constexpr uint32_t toMicroseconds(uint32_t TimerCycles, TimerClockSelectType ClockSelect) {
         return (TimerCycles << toPrescalerShift(ClockSelect)) / (F_CPU / 1000000uL);
     }
+    /* One expression, as a constexpr function of C++11 has a single return statement */
     static constexpr uint8_t toPrescalerShift(TimerClockSelectType ClockSelect) {
-        switch(ClockSelect) {
-            case TIMER_REG_CS_PRESCALE_2:       return 1u;
-            case TIMER_REG_CS_PRESCALE_4:       return 2u;
-            case TIMER_REG_CS_PRESCALE_8:       return 3u;
-            case TIMER_REG_CS_PRESCALE_64:      return 6u;
-            case TIMER_REG_CS_PRESCALE_256:     return 8u;
-            case TIMER_REG_CS_PRESCALE_1024:    return 10u;
-            default:                            return 0u;
-        }
+        return static_cast<uint8_t>(
+            (ClockSelect == TIMER_REG_CS_PRESCALE_2)    ? 1u :
+            (ClockSelect == TIMER_REG_CS_PRESCALE_4)    ? 2u :
+            (ClockSelect == TIMER_REG_CS_PRESCALE_8)    ? 3u :
+            (ClockSelect == TIMER_REG_CS_PRESCALE_64)   ? 6u :
+            (ClockSelect == TIMER_REG_CS_PRESCALE_256)  ? 8u :
+            (ClockSelect == TIMER_REG_CS_PRESCALE_1024) ? 10u : 0u);
     }
 
     TimerCountDirection getCountingDirection();

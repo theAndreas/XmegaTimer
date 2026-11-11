@@ -4,10 +4,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Compiles every example in each variant and prints flash and RAM of each, as a Markdown table.
-# Fails on a warning outside the Arduino core, and where check_elf() of tools/project.sh fails
-# on what was built. When every example compiles, the table goes to build/sizes.md as well, which
-# tools/documented_sizes.py compares with the README's (`make sizes`); else that file is removed,
-# so that no table of an older build is taken for this one's.
+# Fails on a warning outside the board's core, cores/arduino/ or a third party's such as
+# cores/xmega/, and where check_elf() of tools/project.sh fails on what was built. When every
+# example compiles, the table goes to build/sizes.md as well, which tools/documented_sizes.py
+# compares with the README's (`make sizes`); else that file is removed, so that no table of an
+# older build is taken for this one's.
 
 set -euo pipefail
 
@@ -51,7 +52,7 @@ main() {
         continue
       fi
       warnings="$(grep 'warning:' <<< "${output}" \
-        | grep -v '/cores/arduino/' || true)"
+        | grep -Ev '/cores/[^/]+/' || true)"
       if [[ -n "${warnings}" ]]; then
         err "${example} (${variant}) warns:"
         err "${warnings}"
