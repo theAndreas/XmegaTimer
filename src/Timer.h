@@ -176,10 +176,10 @@ class Timer {
   uint16_t PwmDuty[TimerTraits::NumberOfChannels];
 
   constexpr Timer()
-      : State(STATE_NONE),
-        ClockSelectBitGroup(TIMER_REG_CS_NO_PRESCALER),
-        TimerOverflowCallback(nullptr),
-        Top(0xFFFFu),
+      : State{STATE_NONE},
+        ClockSelectBitGroup{TIMER_REG_CS_NO_PRESCALER},
+        TimerOverflowCallback{nullptr},
+        Top{0xFFFFu},
         PwmDuty{} {}
 
   static typename TimerTraits::RegisterType& getTimer() {
