@@ -202,10 +202,12 @@ class Timer {
   }
   // Shifted before it is divided: the other way round the truncation is scaled
   // up by the prescaler, and at 1024 read() moved in steps of a millisecond
-  // where a tick is 32 us. 2 * 0xFFFF << 10 is still well inside 32 bit.
+  // where a tick is 32 us. 2 * 0xFFFF << 10 is still well inside 32 bit. The
+  // divisor in 32 bit as well: F_CPU is an unsigned long, 64 bit on the host.
   static constexpr uint32_t toMicroseconds(uint32_t TimerCycles,
                                            TimerClockSelectType ClockSelect) {
-    return (TimerCycles << toPrescalerShift(ClockSelect)) / (F_CPU / 1000000uL);
+    return (TimerCycles << toPrescalerShift(ClockSelect)) /
+           static_cast<uint32_t>(F_CPU / 1000000uL);
   }
   // One expression, as a constexpr function of C++11 has a single return
   // statement.
@@ -366,6 +368,7 @@ class Timer {
   }
 };
 
+/*! \brief The one Timer of each TC4 or TC5, which getInstance() returns. */
 template <typename TimerTraits>
 Timer<TimerTraits> Timer<TimerTraits>::Instance;
 

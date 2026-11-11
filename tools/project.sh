@@ -52,8 +52,15 @@ SIMAVR_FREQUENCY="32000000"
 #       checked) echo "-DXMEGATIMER_CHECK_ACCESS=1" ;;
 #     esac
 #   }
-VARIANTS=(default)
-TIDY_VARIANTS=(default)
+# tcc4 switches on TCC4, which the core's tone() and analogWrite() use: a sketch that uses tone()
+# does not link with it, as both define TCC4_OVF_vect, but Basics does not.
+VARIANTS=(default tcc4)
+TIDY_VARIANTS=(default tcc4)
+variant_flags() {
+  case "$1" in
+    tcc4) echo "-DTIMER_USE_TCC4=1u" ;;
+  esac
+}
 
 # XMegaForArduino brings no compiler of its own: its platform.txt takes avr-gcc from the tools of
 # the Arduino AVR core, 7.3.0 in 1.8.8, which knows -mmcu=atxmega32e5. Without that core,
