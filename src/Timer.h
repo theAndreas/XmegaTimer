@@ -226,6 +226,7 @@ class Timer {
   void setClockSelect(TimerClockSelectType);
   void setCompareBuffer(TimerChannelType);
   void loadPeriodAndCompare();
+  void restartCounting();
   StdReturnType enablePwmChannel(TimerChannelType, uint16_t);
   StdReturnType disablePwmChannel(TimerChannelType);
   StdReturnType setPwmDutyChannel(TimerChannelType, uint16_t);
@@ -259,8 +260,12 @@ class Timer {
    *
    * The period goes through PERBUF and is taken over at the next BOTTOM; the
    * compare values go with it, computed again from each channel's duty, so a
-   * running PWM keeps its ratio across the change. A new prescaler of a running
-   * timer takes effect at once.
+   * running PWM keeps its ratio across the change.
+   *
+   * A new prescaler cannot wait for BOTTOM: a running timer starts again from
+   * 0 with the new period and compare values, as start() does. The interval in
+   * which it changes then lasts what was counted of it plus the new period, and
+   * the PWM begins its new period at that moment.
    *
    * \param Microseconds the period, more than 0 and less than 2 * 65536 * 1024
    *                     cycles of F_CPU, 4194304 at 32 MHz

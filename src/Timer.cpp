@@ -60,6 +60,7 @@ StdReturnType Timer<TimerTraits>::setPeriod(uint32_t Microseconds) {
   // An out of range period is refused and changes nothing.
   if ((Microseconds > 0u) && (Microseconds < TIMER_MAX_PERIOD)) {
     returnValue = E_OK;
+    TimerClockSelectType const previousClockSelect{ClockSelectBitGroup};
     // The timer cycles of the period: the counter runs backwards after TOP,
     // and the interrupt is at BOTTOM, so half the microseconds.
     uint32_t timerCycles = (F_CPU / 2000000uL) * Microseconds;
@@ -99,8 +100,12 @@ StdReturnType Timer<TimerTraits>::setPeriod(uint32_t Microseconds) {
       }
     }
 
-    if (STATE_RUNNING == State) {
-      setClockSelect(ClockSelectBitGroup);
+    // CTRLA has no buffer: a new prescaler written at once would count the rest
+    // of the period at the new rate to the old TOP, up to 1024 times as long or
+    // as short. So the timer starts again instead, with the new period at once.
+    bool const prescalerChanges{ClockSelectBitGroup != previousClockSelect};
+    if ((STATE_RUNNING == State) && prescalerChanges) {
+      restartCounting();
     }
   }
   return returnValue;
@@ -113,15 +118,20 @@ StdReturnType Timer<TimerTraits>::start() {
   if (STATE_READY == State || STATE_RUNNING == State ||
       STATE_STOPPED == State) {
     returnValue = E_OK;
-    setClockSelect(TIMER_REG_CS_NO_CLOCK);
-    loadPeriodAndCompare();
-    // RESTART clears the counter and the direction, so the first period is a
-    // whole one.
-    getTimer().CTRLGSET = TC45_CMD_RESTART_gc;
-    setClockSelect(ClockSelectBitGroup);
+    restartCounting();
     State = STATE_RUNNING;
   }
   return returnValue;
+}
+
+template <typename TimerTraits>
+void Timer<TimerTraits>::restartCounting() {
+  setClockSelect(TIMER_REG_CS_NO_CLOCK);
+  loadPeriodAndCompare();
+  // RESTART clears the counter and the direction, so the first period is a
+  // whole one.
+  getTimer().CTRLGSET = TC45_CMD_RESTART_gc;
+  setClockSelect(ClockSelectBitGroup);
 }
 
 template <typename TimerTraits>
