@@ -13,7 +13,7 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 | 1 | On the template embedded-cpp-template | – | done | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
 | 2 | What the template is to take over from 1 | 1 | done | [#6](https://github.com/theAndreas/XmegaTimer/pull/6) |
 | 3 | A new prescaler waits for BOTTOM as the period does | 1 | done | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
-| 4 | Version 2.0.0: a namespace, constants for macros, the template's checks | 3 | open | |
+| 4 | Version 0.2.0: a namespace, constants for macros, the template's checks | 3 | in progress | |
 | 5 | Run on an ATxmega32E5 | 1 | open | |
 
 ### 1 On the template embedded-cpp-template
@@ -55,7 +55,7 @@ What bringing in XmegaTimer found in the template, for embedded-cpp-template:
 - `misc-include-cleaner.IgnoreHeaders` in `.clang-tidy` names the core's headers by
   `cores/arduino/` alone, as the warnings filter did; XMegaForArduino's lie in `cores/xmega/`.
   Whether that matters is open: XmegaTimer does not notice, as `examples/.clang-tidy` turns
-  `misc-*` off until 2.0.0 (OIL 4), and on `Basics` the check reports the same, one `uint32_t`
+  `misc-*` off until 0.2.0 (OIL 4), and on `Basics` the check reports the same, one `uint32_t`
   not included directly, whether any core is ignored or only `cores/arduino/`. *Dropped*: it
   makes no difference that can be shown, and OIL 4 turns `misc-*` on in the examples, where
   one that does would come up.
@@ -76,13 +76,27 @@ second prescaler for `read()` until BOTTOM, and has no race with a BOTTOM in the
 `setPeriod()`; the interval of the change lasts what was counted of it plus the new period. A
 stopped timer had the same fault through `resume()`: it is set back to 0 and stays stopped.
 
-### 4 Version 2.0.0: a namespace, constants for macros, the template's checks
+### 4 Version 0.2.0: a namespace, constants for macros, the template's checks
 
 As AtmegaTimer and TimerTwo 2.0.0 did: the namespace `xmega_timer` in `src/xmega_timer/`, Google's
 names, constants and `enum class` in place of `#define` and C enums, a `Status` of its own in
 place of `StdReturnType` from `StandardTypes.h`, and the template's checks in full, so that
-`src/.clang-tidy` and the exceptions of `examples/.clang-tidy` go. A new major version, as the
+`src/.clang-tidy` and the exceptions of `examples/.clang-tidy` go. The behaviour stays; only the
 API changes.
+
+*Decided:*
+
+- 0.2.0, not 2.0.0: 0.1.0 was never released, and before 1.0 a minor version may break the API.
+  AtmegaTimer and TimerTwo took 2.0.0 as their code before had been a version 1 without a number.
+- A timer is a global object, `xmega_timer::tcc4` and `xmega_timer::tcc5`, as
+  `timer_two::timer2`; no `getInstance()`.
+- `Error`, `Status` and `Result` of the library's own, as TimerTwo's and AtmegaTimer's, with the
+  errors of this timer; no dependency on Utl.
+- A clean break: no aliases of the old names. A sketch of 0.1.0 does not compile until it is
+  changed, rather than behaving otherwise; the README has a table of the old and the new names.
+- The switches stay macros, `XMEGATIMER_USE_TCC4` and `XMEGATIMER_USE_TCC5` as 0 or 1: they decide
+  whether the library defines a timer's interrupt vector, which the core's `tone()` defines as
+  well.
 
 Until then `src/` holds both: the code from before the template in `src/` itself, and in
 `src/xmega_timer/` the template's `Bit.h` and `attributes.h`, which only the tests use so far.
