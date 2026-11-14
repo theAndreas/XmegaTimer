@@ -75,6 +75,12 @@ place of `StdReturnType` from `StandardTypes.h`, and the template's checks in fu
 `src/.clang-tidy` and the exceptions of `examples/.clang-tidy` go. A new major version, as the
 API changes.
 
+Until then `src/` holds both: the code from before the template in `src/` itself, and in
+`src/xmega_timer/` the template's `Bit.h` and `attributes.h`, which only the tests use so far.
+With this version the timer reads and writes every bit through `Bit` (CodingStyle H-9), and
+`readBitGroup()` and `writeBitGroup()` go with `StandardTypes.h`, as `Bit::ReadBitGroup()` and
+`Bit::WriteBitGroup()` do the same.
+
 ### 5 Run on an ATxmega32E5
 
 XmegaTimer was never run on the chip. An example that checks itself on the board, the periods,
