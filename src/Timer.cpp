@@ -43,9 +43,7 @@ StdReturnType Timer<TimerTraits>::init(
       returnValue = E_NOT_OK;
     }
     if (sTimerOverflowCallback != nullptr) {
-      if (attachInterrupt(sTimerOverflowCallback) == E_NOT_OK) {
-        returnValue = E_NOT_OK;
-      }
+      enableOverflowInterrupt(sTimerOverflowCallback);
     }
 
     State = STATE_READY;
@@ -176,23 +174,31 @@ StdReturnType Timer<TimerTraits>::attachInterrupt(
 
   if (sTimerOverflowCallback != nullptr) {
     returnValue = E_OK;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-      TimerOverflowCallback = sTimerOverflowCallback;
-    }
-    // The flag is set at every BOTTOM whether the interrupt is on or not, so
-    // one left over from while it was off would call the new callback at once.
-    // Only then: with the interrupt already on, a set flag is a real overflow
-    // about to be served.
-    if (readBitGroup(getTimer().INTCTRLA, TC4_OVFINTLVL_gm) ==
-        TC45_OVFINTLVL_OFF_gc) {
-      getTimer().INTFLAGS = TC4_OVFIF_bm;
-    }
-    // Low level, so the core's millis() on TCD5 (high level) keeps
-    // interrupting the callback.
-    writeBitGroup(getTimer().INTCTRLA, TC4_OVFINTLVL_gm, TC45_OVFINTLVL_LO_gc);
-    PMIC.CTRL |= PMIC_LOLVLEN_bm;
+    enableOverflowInterrupt(sTimerOverflowCallback);
   }
   return returnValue;
+}
+
+// The callback is not nullptr: attachInterrupt() refuses it, and init() does
+// not call this then.
+template <typename TimerTraits>
+void Timer<TimerTraits>::enableOverflowInterrupt(
+    TimerIsrCallbackF_void sTimerOverflowCallback) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    TimerOverflowCallback = sTimerOverflowCallback;
+  }
+  // The flag is set at every BOTTOM whether the interrupt is on or not, so
+  // one left over from while it was off would call the new callback at once.
+  // Only then: with the interrupt already on, a set flag is a real overflow
+  // about to be served.
+  if (readBitGroup(getTimer().INTCTRLA, TC4_OVFINTLVL_gm) ==
+      TC45_OVFINTLVL_OFF_gc) {
+    getTimer().INTFLAGS = TC4_OVFIF_bm;
+  }
+  // Low level, so the core's millis() on TCD5 (high level) keeps
+  // interrupting the callback.
+  writeBitGroup(getTimer().INTCTRLA, TC4_OVFINTLVL_gm, TC45_OVFINTLVL_LO_gc);
+  PMIC.CTRL |= PMIC_LOLVLEN_bm;
 }
 
 template <typename TimerTraits>

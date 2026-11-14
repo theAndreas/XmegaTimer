@@ -12,7 +12,7 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 |---|------|------------|--------|----|
 | 1 | On the template embedded-cpp-template | – | done | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
 | 2 | What the template is to take over from 1 | 1 | open | |
-| 3 | A new prescaler waits for BOTTOM as the period does | 1 | in progress | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
+| 3 | A new prescaler waits for BOTTOM as the period does | 1 | done | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
 | 4 | Version 2.0.0: a namespace, constants for macros, the template's checks | 3 | open | |
 | 5 | Run on an ATxmega32E5 | 1 | open | |
 
@@ -42,7 +42,9 @@ before, or differ by what a commit names.
 What bringing in XmegaTimer found in the template, for embedded-cpp-template:
 
 - `tools/compile_examples.sh` let only the warnings of `cores/arduino/` pass; XMegaForArduino's
-  core warns in `cores/xmega/`. XmegaTimer's copy lets any core's pass, `/cores/[^/]+/`.
+  core warns in `cores/xmega/`. XmegaTimer's copy lets any core's pass, `/cores/[^/]+/`. Since
+  v0.8.0 the template checks the warnings in `tools/lib/arduino_cli.sh`, still against
+  `cores/arduino/` alone, and XmegaTimer's filter is there.
 - The presets `sanitize` and `coverage` have no `ci-` twin, so a warning there does not fail
   `make check`: `-Wconversion` reported `toMicroseconds()` under the sanitizers only, and the
   check passed.
@@ -72,6 +74,12 @@ names, constants and `enum class` in place of `#define` and C enums, a `Status` 
 place of `StdReturnType` from `StandardTypes.h`, and the template's checks in full, so that
 `src/.clang-tidy` and the exceptions of `examples/.clang-tidy` go. A new major version, as the
 API changes.
+
+Until then `src/` holds both: the code from before the template in `src/` itself, and in
+`src/xmega_timer/` the template's `Bit.h` and `attributes.h`, which only the tests use so far.
+With this version the timer reads and writes every bit through `Bit` (CodingStyle H-9), and
+`readBitGroup()` and `writeBitGroup()` go with `StandardTypes.h`, as `Bit::ReadBitGroup()` and
+`Bit::WriteBitGroup()` do the same.
 
 ### 5 Run on an ATxmega32E5
 

@@ -1,12 +1,17 @@
 ---
 # XmegaTimer's code from before the template, until a later version rewrites it in the namespace
-# xmega_timer (OIL 3): its names, macros, typedefs and C enums are what these groups report.
+# xmega_timer (OIL 4): its names, macros, typedefs and C enums are what these groups report, and
+# its bitwise operators on registers and initializations with = are what the template's
+# house-bitwise-in-bit-class and house-braced-var-init of v0.8.0 report (CodingStyle H-9, T-3).
 # They come on with that version, each with what it finds fixed, and this file goes then. The
-# tests and the mock are new and keep every check.
+# tests and the mock are new and keep every check, as do the headers of src/xmega_timer/, which
+# the tests include.
 InheritParentConfig: true
 Checks: >
   -bugprone-assignment-in-if-condition,
   -bugprone-signed-bitwise,
+  -house-bitwise-in-bit-class,
+  -house-braced-var-init,
   -cppcoreguidelines-*,
   -google-*,
   -misc-*,

@@ -4,8 +4,8 @@
 # cppcoreguidelines-avoid-non-const-global-variables: a sketch shares its
 # state between setup(), loop() and its interrupts through globals; the
 # Arduino core gives it no other place.
-# XmegaTimer's own, for now: the groups that src/.clang-tidy turns off, until a later version
-# (OIL 3). clang-tidy holds a header to the checks of the file that includes it, so the examples
+# XmegaTimer's own, for now: the groups and checks that src/.clang-tidy turns off, until a later
+# version (OIL 4). clang-tidy holds a header to the checks of the file that includes it, so the examples
 # would report the headers of src/ with every check; and they use the API of before.
 InheritParentConfig: true
 Checks: >
@@ -13,6 +13,8 @@ Checks: >
   -cppcoreguidelines-avoid-non-const-global-variables,
   -bugprone-assignment-in-if-condition,
   -bugprone-signed-bitwise,
+  -house-bitwise-in-bit-class,
+  -house-braced-var-init,
   -cppcoreguidelines-*,
   -google-*,
   -misc-*,
