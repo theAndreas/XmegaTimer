@@ -261,6 +261,21 @@ TEST_F(TimerTest, StartLoadsThePeriodAndRestartsFromZeroCountingUp) {
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
 }
 
+TEST_F(TimerTest, StartOfAStoppedTimerRestartsItFromZero) {
+  ASSERT_EQ(Tcc5().init(1000u), E_OK);
+  ASSERT_EQ(Tcc5().start(), E_OK);
+  Tcc5().stop();
+
+  EXPECT_EQ(Tcc5().start(), E_OK);
+
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
+  EXPECT_EQ(TCC5.CTRLGSET.Commands(),
+            (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc,
+                                  TC45_CMD_RESTART_gc}));
+  // Running again, not stopped.
+  EXPECT_EQ(Tcc5().resume(), E_NOT_OK);
+}
+
 TEST_F(TimerTest, StopTakesTheClock) {
   ASSERT_EQ(Tcc5().init(1000u), E_OK);
   ASSERT_EQ(Tcc5().start(), E_OK);
@@ -268,6 +283,15 @@ TEST_F(TimerTest, StopTakesTheClock) {
   Tcc5().stop();
 
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
+}
+
+TEST_F(TimerTest, StopOfATimerNotStartedLeavesNothingToResume) {
+  ASSERT_EQ(Tcc5().init(1000u), E_OK);
+
+  Tcc5().stop();
+
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
+  EXPECT_EQ(Tcc5().resume(), E_NOT_OK);
 }
 
 TEST_F(TimerTest, StopBeforeInitLeavesTheTimerToTheCore) {
@@ -405,6 +429,36 @@ TEST_F(TimerTest, ReadAtTheLargestPrescalerCountsEachTick) {
   TCC5.CNT = 3u;
   EXPECT_EQ(Tcc5().read(microseconds), E_OK);
   EXPECT_EQ(microseconds, 96u);
+}
+
+TEST_F(TimerTest, ReadScalesTheCounterByEachPrescaler) {
+  struct ReadCase {
+    uint32_t period;
+    uint8_t clock_select;
+    uint32_t microseconds;
+  };
+  // 3200 ticks, 100 us at 32 MHz times the prescaler.
+  std::vector<ReadCase> const cases{
+      {4096u, TC45_CLKSEL_DIV2_gc, 200u},
+      {10000u, TC45_CLKSEL_DIV4_gc, 400u},
+      {30000u, TC45_CLKSEL_DIV8_gc, 800u},
+      {100000u, TC45_CLKSEL_DIV64_gc, 6400u},
+      {1000000u, TC45_CLKSEL_DIV256_gc, 25600u},
+  };
+  ASSERT_EQ(Tcc5().init(1000u), E_OK);
+
+  for (ReadCase const& c : cases) {
+    SCOPED_TRACE(c.period);
+    ASSERT_EQ(Tcc5().setPeriod(c.period), E_OK);
+    ASSERT_EQ(Tcc5().start(), E_OK);
+    ASSERT_EQ(ClockSelect(TCC5), c.clock_select);
+    TCC5.CNT = 3200u;
+
+    uint32_t microseconds{0u};
+    EXPECT_EQ(Tcc5().read(microseconds), E_OK);
+
+    EXPECT_EQ(microseconds, c.microseconds);
+  }
 }
 
 TEST_F(TimerTest, ReadOfAStoppedTimer) {
