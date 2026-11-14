@@ -36,11 +36,17 @@ namespace internal {
 
 // All timers of the XMEGA count in 16 bits.
 constexpr uint32_t kCounterValues{65536u};
+constexpr uint16_t kLargestTop{0xFFFFu};
+constexpr uint32_t kMicrosecondsPerSecond{1000000u};
 // Whole cycles of the timer's clock per microsecond; Timer asserts that there
 // are, and half as many per half a microsecond.
-constexpr uint32_t kCyclesPerMicrosecond{F_CPU / 1000000uL};
+constexpr uint32_t kCyclesPerMicrosecond{F_CPU / kMicrosecondsPerSecond};
 // The largest prescaler.
 constexpr uint32_t kLargestDivisor{1024u};
+// The microseconds of the largest TOP at the largest prescaler, counted up and
+// down again.
+constexpr uint32_t kLongestPeriod{(kCounterValues / kCyclesPerMicrosecond) *
+                                  kLargestDivisor * 2u};
 
 // The values of the clock select bits CLKSEL of CTRLA.
 enum class ClockSelect : uint8_t {
@@ -96,10 +102,7 @@ class Timer {
    * \brief The longest period, in microseconds: 2 * 65536 cycles at the largest
    *        prescaler, less one; 4194303 at 32 MHz.
    */
-  static constexpr uint32_t kPeriodMax{
-      (internal::kCounterValues / internal::kCyclesPerMicrosecond) *
-          internal::kLargestDivisor * 2u -
-      1u};
+  static constexpr uint32_t kPeriodMax{internal::kLongestPeriod - 1u};
 
   /*! \brief The period Begin() takes where none is given: 1 ms. */
   static constexpr uint32_t kDefaultPeriod{1000u};
@@ -305,7 +308,8 @@ class Timer {
 
   // SetPeriod() and Read() convert with whole timer cycles per half and per
   // whole microsecond.
-  static_assert(F_CPU % 2000000uL == 0u, "F_CPU has to be a multiple of 2 MHz");
+  static_assert(F_CPU % (2u * internal::kMicrosecondsPerSecond) == 0u,
+                "F_CPU has to be a multiple of 2 MHz");
 
   static constexpr uint8_t IndexOf(Channel which) {
     return static_cast<uint8_t>(which);
@@ -343,7 +347,7 @@ class Timer {
   // read back from the registers, because a value on its way through a buffer
   // register is not in them until BOTTOM, and because a duty is a share of the
   // period that has to be applied again when it changes.
-  uint16_t top_{0xFFFFu};
+  uint16_t top_{internal::kLargestTop};
   internal::array<uint16_t, Traits::kChannelCount> duties_{};
 };
 

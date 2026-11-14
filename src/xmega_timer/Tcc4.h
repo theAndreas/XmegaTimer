@@ -25,6 +25,7 @@
  * Its channels A and B sit on PC0 and PC1, the pins of TWI.
  */
 #ifndef XMEGATIMER_USE_TCC4
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): T-6, a switch that #if reads
 #define XMEGATIMER_USE_TCC4 0
 #endif
 
@@ -130,6 +131,7 @@ struct Tcc4Traits::CompareChannel<Channel::kD> {
 using Tcc4 = Timer<Tcc4Traits>;
 
 /*! \brief TCC4, the one Timer of the TC4 of port C. */
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): M-5
 extern Tcc4 tcc4;
 
 }  // namespace xmega_timer

@@ -23,6 +23,7 @@
  * millis() on it and defines its vector itself.
  */
 #ifndef XMEGATIMER_USE_TCC5
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): T-6, a switch that #if reads
 #define XMEGATIMER_USE_TCC5 1
 #endif
 
@@ -94,6 +95,7 @@ struct Tcc5Traits::CompareChannel<Channel::kB> {
 using Tcc5 = Timer<Tcc5Traits>;
 
 /*! \brief TCC5, the one Timer of the TC5 of port C. */
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): M-5
 extern Tcc5 tcc5;
 
 }  // namespace xmega_timer

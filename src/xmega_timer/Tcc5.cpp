@@ -9,9 +9,9 @@
 
 namespace xmega_timer {
 
-// Initialized when compiling, by the constexpr constructor (CodingStyle M-5).
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the one
-// timer, which its interrupt reaches
+// The one timer, which its interrupt reaches, made when compiling by the
+// constexpr constructor (CodingStyle M-5).
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): M-5
 Tcc5 tcc5;
 
 }  // namespace xmega_timer

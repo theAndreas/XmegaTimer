@@ -26,7 +26,7 @@ char const kTextUnknownError[] PROGMEM = "unknown error";
 
 // In the order of Error. A C array, as PROGMEM places only an object of its
 // own in flash, and the library has no array class (CodingStyle T-20).
-// NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
+// NOLINTNEXTLINE(modernize-avoid-c-arrays)
 char const* const kTexts[] PROGMEM{
     kTextOk,
     kTextNotBegun,
@@ -51,8 +51,6 @@ __FlashStringHelper const* Status::ErrorText() const {
   // The address of an entry only once the index is known to be one: beyond
   // the table, even forming it would be undefined.
   if (index < kTextCount) {
-    // The index is below kTextCount, checked by the if.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     text = pgm_read_ptr(&kTexts[index]);
   }
   // The type Serial.print() takes for a text in flash, as F() makes it.

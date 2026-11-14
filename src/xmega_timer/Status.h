@@ -42,9 +42,8 @@ class Status {
    *
    * \param[in] error The error, or Error::kOk.
    */
-  // NOLINTNEXTLINE(google-explicit-constructor): a call returns Error::kX so
-  constexpr Status(Error error = Error::kOk)  // NOLINT(runtime/explicit)
-      : error_{error} {}
+  // NOLINTNEXTLINE(runtime/explicit): a call returns an Error as it is
+  constexpr Status(Error error = Error::kOk) : error_{error} {}
 
   /*! \brief Returns the error, Error::kOk where there is none. */
   XMEGATIMER_NODISCARD constexpr Error error() const { return error_; }

@@ -39,18 +39,16 @@ class Result {
    *
    * \param[in] value The value.
    */
-  // NOLINTNEXTLINE(google-explicit-constructor): a call returns its value so
-  constexpr Result(Value value)  // NOLINT(runtime/explicit)
-      : value_{value}, status_{} {}
+  // NOLINTNEXTLINE(runtime/explicit): a call returns its value as it is
+  constexpr Result(Value value) : value_{value} {}
 
   /*!
    * \brief Makes a result of `error`, whose value is zero.
    *
    * \param[in] error The error.
    */
-  // NOLINTNEXTLINE(google-explicit-constructor): a call returns Error::kX so
-  constexpr Result(Error error)  // NOLINT(runtime/explicit)
-      : value_{}, status_{error} {}
+  // NOLINTNEXTLINE(runtime/explicit): a call returns an Error as it is
+  constexpr Result(Error error) : value_{}, status_{error} {}
 
   /*! \brief Returns whether there is a value, and no error. */
   XMEGATIMER_NODISCARD constexpr bool IsOk() const { return status_.IsOk(); }
