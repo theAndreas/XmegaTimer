@@ -14,7 +14,6 @@ Checks: >
   performance-*,
   portability-*,
   readability-*,
-  -bugprone-dynamic-static-initializers,
   -cert-dcl37-c,
   -cert-dcl51-cpp,
   -cert-dcl58-cpp,
@@ -47,9 +46,6 @@ Checks: >
 #   the module, as in clangd, the name matches nothing. house-bitwise-in-bit-class takes the
 #   bit class to be any class named Bit (docs/CodingStyle.md H-9); a project whose class has
 #   another name sets house-bitwise-in-bit-class.BitClasses below, names separated by `;`.
-# bugprone-dynamic-static-initializers: it reports the extern declaration of a constant whose
-#   constexpr definition lies in a .cpp it cannot see, as an object identified by its address
-#   has to be.
 # cert-dcl37-c, cert-dcl51-cpp, cert-dcl58-cpp: aliases of bugprone-reserved-identifier and
 #   bugprone-std-namespace-modification, which are on; two names would want two NOLINTs.
 # cppcoreguidelines-avoid-c-arrays, -avoid-magic-numbers, -c-copy-assignment-signature,
@@ -162,8 +158,10 @@ CheckOptions:
   # from the core's folder and from the variant's. And <avr/io.h> as what
   # provides a part's registers: avr-libc includes the part's header through
   # it, at times through a second one, as iom2560.h through iomxx0_1.h, which
-  # include-cleaner does not take back to <avr/io.h>.
-  misc-include-cleaner.IgnoreHeaders: '.*/cores/arduino/.*;.*/variants/.*;.*/avr/io[^/]*\.h'
+  # include-cleaner does not take back to <avr/io.h>. Any core's folder, not
+  # only cores/arduino/ of Arduino's: a third party's core has its own, as
+  # cores/xmega/ of XMegaForArduino's, where Serial comes from.
+  misc-include-cleaner.IgnoreHeaders: '.*/cores/[^/]+/.*;.*/variants/.*;.*/avr/io[^/]*\.h'
   # Google's names, which readability-identifier-naming checks only once it is told them; the
   # same block in every project, so that every project names alike. Two exceptions Google
   # makes itself are general: an accessor is named like the variable it gives (group(),
