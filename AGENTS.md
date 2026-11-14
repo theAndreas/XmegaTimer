@@ -109,16 +109,16 @@ links itself in the same PR.
 - **The board is a third party's**: XMegaForArduino's ATxmega32E5 at 32 MHz, whose platform takes
   avr-gcc from `arduino:avr`; `make setup` installs both. No simavr: it does not know the chip, so
   there is no SelfCheck, and nothing has run on the chip yet (OIL 5).
-- **The code is from before the template, until version 2.0.0** (OIL 4): the class template
-  `Timer<TimerC4>` and `Timer<TimerC5>` with a singleton each, `StdReturnType` from
-  `src/StandardTypes.h`, switches as `#define`. `src/.clang-tidy` and `examples/.clang-tidy` turn
-  off the groups it fails until then; new code, the tests and the mock, keeps every check.
+- **One class template, two global objects**: `Timer<Traits>` in `src/xmega_timer/Timer.h`, and
+  `tcc4` and `tcc5`, each with its traits in `Tcc4.h` and `Tcc5.h`. A compare channel is a
+  specialization of the traits that names its pin and registers, so that a channel a timer lacks
+  fails to compile; a call that can refuse returns a `Status` or a `Result` with an `Error`.
 - **TCC4 is off by default**, as the core's `tone()` and `analogWrite()` use it; the variant
   `tcc4` switches it on, in the tests and for the board. TCD5 is the core's `millis()` and is
   never offered.
-- **The tests need a process each**: `init()` takes the singleton once, and no test can begin
+- **The tests need a process each**: `Begin()` takes a global timer once, and no test can begin
   from a new one. ctest runs each test on its own, as `gtest_discover_tests()` adds them; the
   fixture fails in `SetUp()` otherwise.
 - **The mock of the registers**, `test/mock/avr/io.h`, has them in the order of avr-libc's
-  `iox32e5.h`, as the library reaches CCA..CCD and their buffers by index; keep that order.
-  CTRLGSET records the commands and holds the direction. Nothing counts: a test sets CNT.
+  `iox32e5.h`, and the masks by its names; it grows by what the library uses. CTRLGSET records
+  the commands and holds the direction. Nothing counts: a test sets CNT.

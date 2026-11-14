@@ -41,7 +41,8 @@ Checks: >
   -modernize-return-braced-init-list,
   -modernize-use-trailing-return-type,
   -readability-identifier-length,
-  -readability-named-parameter
+  -readability-named-parameter,
+  -cppcoreguidelines-pro-type-union-access
 # house-*: the checks of our own, in tools/lib/tidy_module/; tools/tidy.sh loads them. Without
 #   the module, as in clangd, the name matches nothing. house-bitwise-in-bit-class takes the
 #   bit class to be any class named Bit (docs/CodingStyle.md H-9); a project whose class has
@@ -79,6 +80,10 @@ Checks: >
 #   lines.
 # readability-named-parameter: Google leaves out the name of a parameter that is unused where
 #   the context explains it, as a tag type that only picks an overload.
+# The project's: cppcoreguidelines-pro-type-union-access, as avr-libc declares every 16-bit
+#   register of the XMEGA, as CCA, PER or CNT, as a word in a union with its two bytes, so that
+#   each access to one is reported, and the word is what the timer reads and writes
+#   (CodingStyle S-3).
 WarningsAsErrors: '*'
 # clang's warnings beyond -Wall -Wextra, which tools/tidy.sh passes: what an IDE such as CLion
 # finds with its own analysis of the code, reported here by clang-tidy as clang-diagnostic-*
@@ -197,3 +202,5 @@ CheckOptions:
   readability-identifier-naming.EnumConstantPrefix: k
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
   readability-identifier-naming.MacroDefinitionIgnoredRegexp: '^[A-Z][A-Z0-9_]*_$'
+  # The project's: array mimics std::array, which avr-gcc lacks, and takes its name.
+  readability-identifier-naming.StructIgnoredRegexp: '^array$'

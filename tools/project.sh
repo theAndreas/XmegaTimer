@@ -62,6 +62,6 @@ VARIANTS=(default tcc4)
 TIDY_VARIANTS=(default tcc4)
 variant_flags() {
   case "$1" in
-    tcc4) echo "-DTIMER_USE_TCC4=1u" ;;
+    tcc4) echo "-DXMEGATIMER_USE_TCC4=1" ;;
   esac
 }

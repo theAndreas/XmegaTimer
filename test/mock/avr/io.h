@@ -24,6 +24,9 @@ using register16_t = uint16_t volatile;
 constexpr uint8_t TC4_CLKSEL_gm{0x0F};
 constexpr uint8_t TC4_WGMODE_gm{0x07};
 constexpr uint8_t TC4_CCAMODE_gm{0x03};
+constexpr uint8_t TC4_CCBMODE_gm{0x0C};
+constexpr uint8_t TC4_CCCMODE_gm{0x30};
+constexpr uint8_t TC4_CCDMODE_gm{0xC0};
 constexpr uint8_t TC4_OVFINTLVL_gm{0x03};
 constexpr uint8_t TC4_CMD_gm{0x0C};
 constexpr uint8_t TC4_DIR_bm{0x01};
@@ -32,11 +35,18 @@ constexpr uint8_t TC4_BYTEM_gm{0xC0};
 constexpr uint8_t TC5_CLKSEL_gm{0x0F};
 constexpr uint8_t TC5_WGMODE_gm{0x07};
 constexpr uint8_t TC5_CCAMODE_gm{0x03};
+constexpr uint8_t TC5_CCBMODE_gm{0x0C};
 constexpr uint8_t TC5_OVFINTLVL_gm{0x03};
 constexpr uint8_t TC5_CMD_gm{0x0C};
 constexpr uint8_t TC5_DIR_bm{0x01};
 constexpr uint8_t TC5_OVFIF_bm{0x01};
 constexpr uint8_t PMIC_LOLVLEN_bm{0x01};
+constexpr uint8_t PIN0_bm{0x01};
+constexpr uint8_t PIN1_bm{0x02};
+constexpr uint8_t PIN2_bm{0x04};
+constexpr uint8_t PIN3_bm{0x08};
+constexpr uint8_t PIN4_bm{0x10};
+constexpr uint8_t PIN5_bm{0x20};
 
 enum TC45_CLKSEL_t {
   TC45_CLKSEL_OFF_gc = 0x00,
@@ -57,6 +67,21 @@ enum TC45_WGMODE_t {
 enum TC45_CCAMODE_t {
   TC45_CCAMODE_DISABLE_gc = 0x00,
   TC45_CCAMODE_COMP_gc = 0x01
+};
+
+enum TC45_CCBMODE_t {
+  TC45_CCBMODE_DISABLE_gc = 0x00,
+  TC45_CCBMODE_COMP_gc = 0x04
+};
+
+enum TC45_CCCMODE_t {
+  TC45_CCCMODE_DISABLE_gc = 0x00,
+  TC45_CCCMODE_COMP_gc = 0x10
+};
+
+enum TC45_CCDMODE_t {
+  TC45_CCDMODE_DISABLE_gc = 0x00,
+  TC45_CCDMODE_COMP_gc = 0x40
 };
 
 enum TC45_OVFINTLVL_t {
