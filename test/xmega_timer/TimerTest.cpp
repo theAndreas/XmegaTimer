@@ -13,6 +13,7 @@
 
 #include <ostream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "test/fixture.h"
@@ -25,6 +26,15 @@ namespace xmega_timer {
 namespace {
 
 using TimerTest = TimerFixture;
+
+TEST_F(TimerTest, IsNeitherCopiedNorMoved) {
+  // A copy would drive the timer, but its interrupt serves tcc5 alone, so that
+  // the callback of the copy would never be called.
+  static_assert(!std::is_copy_constructible_v<Tcc5>, "no copy");
+  static_assert(!std::is_copy_assignable_v<Tcc5>, "no copy assigned");
+  static_assert(!std::is_move_constructible_v<Tcc5>, "no move");
+  static_assert(!std::is_move_assignable_v<Tcc5>, "no move assigned");
+}
 
 TEST_F(TimerTest, BeginStopsAndResetsTheTimerAndSetsDualSlopeAtBottom) {
   // The core leaves the timer running for analogWrite().

@@ -66,7 +66,9 @@ enum class ClockSelect : uint8_t {
  * \brief A TC4 or TC5 as a periodic interrupt, a PWM on each of its compare
  *        channels and a time readout.
  *
- * There is one of each timer, tcc4 and tcc5; Begin() first, then Start(). The
+ * There is one of each timer, tcc4 and tcc5, the objects their interrupts
+ * serve; a Timer of a sketch's own would get no interrupt, and none is copied.
+ * Begin() first, then Start(). The
  * timer counts dual-slope and interrupts at BOTTOM, so that a period spans
  * twice the timer cycles of TOP and the PWM is phase-correct.
  *
@@ -114,6 +116,21 @@ class Timer {
    * M-5).
    */
   constexpr Timer() = default;
+
+  /*! \brief Deleted: the interrupt serves tcc4 and tcc5, not a copy. */
+  Timer(Timer const&) = delete;
+
+  /*! \brief Deleted, as the copy. */
+  Timer(Timer&&) = delete;
+
+  /*! \brief Deleted, as the copy. */
+  Timer& operator=(Timer const&) = delete;
+
+  /*! \brief Deleted, as the copy. */
+  Timer& operator=(Timer&&) = delete;
+
+  /*! \brief Trivial, so that tcc4 and tcc5 need no code at the end. */
+  ~Timer() = default;
 
   /*!
    * \brief Sets the timer up, dual-slope with the overflow interrupt at BOTTOM,
