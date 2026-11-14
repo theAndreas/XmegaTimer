@@ -16,10 +16,12 @@
 #include <vector>
 
 #include "StandardTypes.h"
+#include "xmega_timer/Bit.h"
 
 namespace {
 
 using Tc5 = Timer<TimerC5>;
+using Bits = xmega_timer::Bit<uint8_t>;
 
 int tests_begun{0};
 int ticks{0};
@@ -29,13 +31,13 @@ void OnTick() { ++ticks; }
 void OnOtherTick() { ++other_ticks; }
 
 uint8_t ClockSelect(MockTimer const& timer) {
-  return static_cast<uint8_t>(timer.CTRLA & TC4_CLKSEL_gm);
+  return Bits::ReadBitGroup(timer.CTRLA, TC4_CLKSEL_gm);
 }
 
 // The mode of a compare channel in CTRLE, 0 for A to 3 for D.
 uint8_t ChannelMode(MockTimer const& timer, unsigned channel) {
-  return static_cast<uint8_t>(
-      (static_cast<unsigned>(timer.CTRLE) >> (2u * channel)) & TC4_CCAMODE_gm);
+  uint8_t const position{static_cast<uint8_t>(2u * channel)};
+  return Bits::ReadBitGroup(timer.CTRLE, TC4_CCAMODE_gm, position);
 }
 
 class TimerTest : public ::testing::Test {
@@ -61,7 +63,8 @@ TEST_F(TimerTest, InitStopsAndResetsTheTimerAndSetsDualSlopeAtBottom) {
 
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
   EXPECT_EQ(TCC5.CTRLGSET.Commands(), std::vector<uint8_t>{TC45_CMD_RESET_gc});
-  EXPECT_EQ(TCC5.CTRLB & TC4_WGMODE_gm, TC45_WGMODE_DSBOTTOM_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.CTRLB, TC4_WGMODE_gm),
+            TC45_WGMODE_DSBOTTOM_gc);
   EXPECT_EQ(TCC5.PERBUF, 16000u);
 }
 
@@ -71,21 +74,24 @@ TEST_F(TimerTest, InitASecondTimeIsRefusedAndChangesNothing) {
   EXPECT_EQ(Tcc5().init(2000u, OnTick), E_NOT_OK);
 
   EXPECT_EQ(TCC5.PERBUF, 16000u);
-  EXPECT_EQ(TCC5.INTCTRLA & TC4_OVFINTLVL_gm, TC45_OVFINTLVL_OFF_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_OFF_gc);
 }
 
 TEST_F(TimerTest, InitWithoutCallbackLeavesTheInterruptOff) {
   ASSERT_EQ(Tcc5().init(1000u), E_OK);
 
-  EXPECT_EQ(TCC5.INTCTRLA & TC4_OVFINTLVL_gm, TC45_OVFINTLVL_OFF_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_OFF_gc);
   EXPECT_EQ(PMIC.CTRL, 0u);
 }
 
 TEST_F(TimerTest, InitWithCallbackEnablesTheInterruptAtLowLevel) {
   ASSERT_EQ(Tcc5().init(1000u, OnTick), E_OK);
 
-  EXPECT_EQ(TCC5.INTCTRLA & TC4_OVFINTLVL_gm, TC45_OVFINTLVL_LO_gc);
-  EXPECT_EQ(PMIC.CTRL & PMIC_LOLVLEN_bm, PMIC_LOLVLEN_bm);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_LO_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(PMIC.CTRL, PMIC_LOLVLEN_bm), PMIC_LOLVLEN_bm);
 }
 
 TEST_F(TimerTest, InitWithAPeriodOutOfRangeIsRefusedButInitializes) {
@@ -251,7 +257,7 @@ TEST_F(TimerTest, StartLoadsThePeriodAndRestartsFromZeroCountingUp) {
   EXPECT_EQ(TCC5.PER, 16000u);
   EXPECT_EQ(TCC5.CTRLGSET.Commands(),
             (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc}));
-  EXPECT_EQ(TCC5.CTRLGSET & TC4_DIR_bm, 0u);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.CTRLGSET, TC4_DIR_bm), 0u);
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
 }
 
@@ -297,7 +303,8 @@ TEST_F(TimerTest, AttachInterruptOfNullptrIsRefused) {
 
   EXPECT_EQ(Tcc5().attachInterrupt(nullptr), E_NOT_OK);
 
-  EXPECT_EQ(TCC5.INTCTRLA & TC4_OVFINTLVL_gm, TC45_OVFINTLVL_OFF_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_OFF_gc);
 }
 
 TEST_F(TimerTest, AttachInterruptClearsAFlagFromWhileItWasOff) {
@@ -307,7 +314,8 @@ TEST_F(TimerTest, AttachInterruptClearsAFlagFromWhileItWasOff) {
   EXPECT_EQ(Tcc5().attachInterrupt(OnTick), E_OK);
 
   EXPECT_EQ(TCC5.INTFLAGS, TC4_OVFIF_bm);
-  EXPECT_EQ(TCC5.INTCTRLA & TC4_OVFINTLVL_gm, TC45_OVFINTLVL_LO_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_LO_gc);
 }
 
 TEST_F(TimerTest, AttachInterruptWhileOnLeavesAPendingOverflow) {
@@ -346,7 +354,8 @@ TEST_F(TimerTest, DetachInterruptTurnsItOffAndForgetsTheCallback) {
 
   Tcc5().detachInterrupt();
 
-  EXPECT_EQ(TCC5.INTCTRLA & TC4_OVFINTLVL_gm, TC45_OVFINTLVL_OFF_gc);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_OFF_gc);
   TCC5_OVF_vect();
   EXPECT_EQ(ticks, 0);
 }
@@ -415,7 +424,7 @@ TEST_F(TimerTest, EnablePwmOnChannelADrivesPc4) {
 
   EXPECT_EQ(Tcc5().enablePwm<Tc5::TIMER_CHANNEL_A>(512u), E_OK);
 
-  EXPECT_EQ(PORTC.DIRSET, 1u << 4u);
+  EXPECT_EQ(PORTC.DIRSET, Bits::ToMask(4));
   EXPECT_EQ(ChannelMode(TCC5, 0), TC45_CCAMODE_COMP_gc);
   EXPECT_EQ(ChannelMode(TCC5, 1), TC45_CCAMODE_DISABLE_gc);
   EXPECT_EQ(TCC5.CCABUF, 8000u);
@@ -426,7 +435,7 @@ TEST_F(TimerTest, EnablePwmOnChannelBDrivesPc5) {
 
   EXPECT_EQ(Tcc5().enablePwm<Tc5::TIMER_CHANNEL_B>(256u), E_OK);
 
-  EXPECT_EQ(PORTC.DIRSET, 1u << 5u);
+  EXPECT_EQ(PORTC.DIRSET, Bits::ToMask(5));
   EXPECT_EQ(ChannelMode(TCC5, 0), TC45_CCAMODE_DISABLE_gc);
   EXPECT_EQ(ChannelMode(TCC5, 1), TC45_CCAMODE_COMP_gc);
   EXPECT_EQ(TCC5.CCBBUF, 4000u);
@@ -516,13 +525,13 @@ TEST_F(TimerTest, Tcc4DrivesItsFourChannelsOnPc0ToPc3) {
   ASSERT_EQ(tcc4.init(1000u), E_OK);
 
   EXPECT_EQ(tcc4.enablePwm<Tc4::TIMER_CHANNEL_A>(128u), E_OK);
-  EXPECT_EQ(PORTC.DIRSET, 1u << 0u);
+  EXPECT_EQ(PORTC.DIRSET, Bits::ToMask(0));
   EXPECT_EQ(tcc4.enablePwm<Tc4::TIMER_CHANNEL_B>(256u), E_OK);
-  EXPECT_EQ(PORTC.DIRSET, 1u << 1u);
+  EXPECT_EQ(PORTC.DIRSET, Bits::ToMask(1));
   EXPECT_EQ(tcc4.enablePwm<Tc4::TIMER_CHANNEL_C>(512u), E_OK);
-  EXPECT_EQ(PORTC.DIRSET, 1u << 2u);
+  EXPECT_EQ(PORTC.DIRSET, Bits::ToMask(2));
   EXPECT_EQ(tcc4.enablePwm<Tc4::TIMER_CHANNEL_D>(Tc4::PwmDutyMax), E_OK);
-  EXPECT_EQ(PORTC.DIRSET, 1u << 3u);
+  EXPECT_EQ(PORTC.DIRSET, Bits::ToMask(3));
 
   for (unsigned channel{0u}; channel < 4u; ++channel) {
     SCOPED_TRACE(channel);
