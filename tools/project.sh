@@ -10,7 +10,8 @@
 #   NAMESPACE            the library's namespace; tools/docs.sh lets gaps in
 #                        NAMESPACE::internal pass
 #   FQBN                 the board the examples are compiled for
-#   ARDUINO_CORE         the core, pinned, as arduino-cli installs it
+#   ARDUINO_CORE         the cores, pinned, as arduino-cli installs them, an array: the
+#                        board's, and another whose tools it takes
 #   ARDUINO_BOARD_URLS   the index of a third-party core, for arduino-cli core update-index
 #   SIMAVR_MCU           what simavr runs examples/SelfCheck as; empty: no run in simavr
 #   SIMAVR_FREQUENCY     its clock, in Hz
@@ -34,7 +35,10 @@
 
 NAMESPACE="xmega_timer"
 FQBN="XMegaForArduino:avr:xmega32e5"
-ARDUINO_CORE="XMegaForArduino:avr@0.9.2"
+# XMegaForArduino brings no compiler of its own: its platform.txt takes avr-gcc from the tools of
+# the Arduino AVR core, 7.3.0 in 1.8.8, which knows -mmcu=atxmega32e5. Without that core,
+# arduino-cli calls /bin/avr-g++.
+ARDUINO_CORE=(XMegaForArduino:avr@0.9.2 arduino:avr@1.8.8)
 # XMegaForArduino's index lies only on its master branch; the version of the core is pinned above.
 ARDUINO_BOARD_URLS="https://raw.githubusercontent.com/XMegaForArduino/IDE/master/package_XMegaForArduino_index.json"
 # simavr does not know the ATxmega E5.
@@ -60,11 +64,4 @@ variant_flags() {
   case "$1" in
     tcc4) echo "-DTIMER_USE_TCC4=1u" ;;
   esac
-}
-
-# XMegaForArduino brings no compiler of its own: its platform.txt takes avr-gcc from the tools of
-# the Arduino AVR core, 7.3.0 in 1.8.8, which knows -mmcu=atxmega32e5. Without that core,
-# arduino-cli calls /bin/avr-g++.
-prepare() {
-  arduino-cli core install arduino:avr@1.8.8
 }

@@ -9,6 +9,12 @@
 # build/coverage/html/. The variants of CMakeLists.txt count together, as each takes other
 # branches of #if, and with them the suites coverage_suites() of tools/project.sh runs. gcovr
 # runs from the environment uv.lock pins, like the tools of lint.sh.
+#
+# Usage: tools/coverage.sh [PRESET]
+#
+# PRESET is the CMake workflow that builds and runs the tests, coverage unless given, or
+# ci-coverage, with warnings as errors, as `make check` passes it; both build into
+# build/coverage.
 
 set -euo pipefail
 
@@ -97,12 +103,17 @@ check_minimum() {
 }
 
 main() {
+  if [[ $# -gt 1 ]]; then
+    err "Usage: $0 [PRESET]"
+    exit 2
+  fi
+  local -r preset="${1:-coverage}"
   cd "${ROOT_DIR}"
   check_minimum
   check_exclusions
   # Counts from an earlier run would add to this one.
   find "${COVERAGE_DIR}" -name '*.gcda' -delete 2>/dev/null || true
-  cmake --workflow --preset coverage
+  cmake --workflow --preset "${preset}"
   remove_stale_notes
   # The project's suites beyond CMake's, as a backend's tests built by a script of its own.
   local listed
