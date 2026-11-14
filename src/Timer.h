@@ -175,12 +175,15 @@ class Timer {
   uint16_t Top;
   uint16_t PwmDuty[TimerTraits::NumberOfChannels];
 
+  // GCOVR_EXCL_START: constexpr, so the singleton is initialized before the
+  // program runs, and no test executes it
   constexpr Timer()
       : State{STATE_NONE},
         ClockSelectBitGroup{TIMER_REG_CS_NO_PRESCALER},
         TimerOverflowCallback{nullptr},
         Top{0xFFFFu},
         PwmDuty{} {}
+  // GCOVR_EXCL_STOP
 
   static typename TimerTraits::RegisterType& getTimer() {
     return TimerTraits::getTimer();
@@ -227,6 +230,7 @@ class Timer {
   void setCompareBuffer(TimerChannelType);
   void loadPeriodAndCompare();
   void restartCounting(TimerClockSelectType);
+  void enableOverflowInterrupt(TimerIsrCallbackF_void);
   void takeOverClockSelect();
   StdReturnType enablePwmChannel(TimerChannelType, uint16_t);
   StdReturnType disablePwmChannel(TimerChannelType);
