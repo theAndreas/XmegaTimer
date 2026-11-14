@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
+#include <ostream>
 #include <string>
 
 #include "test/printers.h"
@@ -51,6 +52,12 @@ struct TextCase {
   Error error;
   char const* text;
 };
+
+// By its name, as ctest names the test after it.
+// NOLINTNEXTLINE(readability-identifier-naming)
+void PrintTo(TextCase const& test_case, std::ostream* out) {
+  *out << test_case.name;
+}
 
 class StatusTextTest : public ::testing::TestWithParam<TextCase> {};
 

@@ -5,21 +5,24 @@
 // 50 % on its channel A, pin PC4.
 
 #include <XmegaTimer.h>
+#include <stdint.h>
 
 namespace {
 
-uint32_t volatile ticks = 0u;
+uint32_t volatile ticks{0u};
 
 void OnTick() { ticks = ticks + 1u; }
 
 }  // namespace
 
 void setup() {
-  Timer<TimerC5>& timer = Timer<TimerC5>::getInstance();
-  timer.init(1000u, OnTick);
-  // 50 %, of a duty of 0 .. 1023.
-  timer.enablePwm<Timer<TimerC5>::TIMER_CHANNEL_A>(512u);
-  timer.start();
+  // Nothing to do on a refusal here: the period and the duty are in range, and
+  // the timer is begun once.
+  xmega_timer::Discard(xmega_timer::tcc5.Begin(1000u, OnTick));
+  // 50 %, of a duty of 0 to 1023.
+  xmega_timer::Discard(
+      xmega_timer::tcc5.EnablePwm<xmega_timer::Channel::kA>(512u));
+  xmega_timer::Discard(xmega_timer::tcc5.Start());
 }
 
 void loop() {}
