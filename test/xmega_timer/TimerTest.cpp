@@ -46,6 +46,24 @@ TEST_F(TimerTest, BeginStopsAndResetsTheTimerAndSetsDualSlopeAtBottom) {
   EXPECT_EQ(TCC5.CTRLGSET.Commands(), std::vector<uint8_t>{TC45_CMD_RESET_gc});
   EXPECT_EQ(Bits::ReadBitGroup(TCC5.CTRLB, TC4_WGMODE_gm),
             TC45_WGMODE_DSBOTTOM_gc);
+}
+
+TEST_F(TimerTest, BeginWithoutArgumentsTakesOneMillisecondAndNoCallback) {
+  EXPECT_EQ(tcc5.Begin(), Error::kOk);
+
+  // 16 timer cycles per microsecond, without a prescaler.
+  EXPECT_EQ(TCC5.PERBUF, 16000u);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_OFF_gc);
+}
+
+TEST_F(TimerTest, BeginOfARunningTimerIsRefusedAndLeavesItRunning) {
+  ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
+  ASSERT_EQ(tcc5.Start(), Error::kOk);
+
+  EXPECT_EQ(tcc5.Begin(2000u), Error::kBegunAlready);
+
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
   EXPECT_EQ(TCC5.PERBUF, 16000u);
 }
 
@@ -154,7 +172,7 @@ TEST_F(TimerTest, SetPeriodOfZeroIsRefusedAndChangesNothing) {
 TEST_F(TimerTest, SetPeriodOneBeyondTheLongestIsRefusedAndChangesNothing) {
   ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
 
-  EXPECT_EQ(tcc5.SetPeriod(Tcc5::kPeriodMax + 1u), Error::kPeriodOutOfRange);
+  EXPECT_EQ(tcc5.SetPeriod(4194304u), Error::kPeriodOutOfRange);
 
   EXPECT_EQ(TCC5.PERBUF, 16000u);
   ASSERT_EQ(tcc5.Start(), Error::kOk);
@@ -299,8 +317,28 @@ TEST_F(TimerTest, StartOfAStoppedTimerRestartsItFromZero) {
   EXPECT_EQ(TCC5.CTRLGSET.Commands(),
             (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc,
                                   TC45_CMD_RESTART_gc}));
-  // Running again, not stopped.
+}
+
+TEST_F(TimerTest, StartOfAStoppedTimerLeavesNothingToResume) {
+  ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
+  ASSERT_EQ(tcc5.Start(), Error::kOk);
+  tcc5.Stop();
+
+  EXPECT_EQ(tcc5.Start(), Error::kOk);
+
   EXPECT_EQ(tcc5.Resume(), Error::kNotStopped);
+}
+
+TEST_F(TimerTest, StartOfARunningTimerRestartsItFromZero) {
+  ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
+  ASSERT_EQ(tcc5.Start(), Error::kOk);
+
+  EXPECT_EQ(tcc5.Start(), Error::kOk);
+
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
+  EXPECT_EQ(TCC5.CTRLGSET.Commands(),
+            (std::vector<uint8_t>{TC45_CMD_RESET_gc, TC45_CMD_RESTART_gc,
+                                  TC45_CMD_RESTART_gc}));
 }
 
 TEST_F(TimerTest, StopTakesTheClock) {
@@ -310,6 +348,17 @@ TEST_F(TimerTest, StopTakesTheClock) {
   tcc5.Stop();
 
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
+}
+
+TEST_F(TimerTest, StopOfAStoppedTimerChangesNothing) {
+  ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
+  ASSERT_EQ(tcc5.Start(), Error::kOk);
+  tcc5.Stop();
+
+  tcc5.Stop();
+
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_OFF_gc);
+  EXPECT_EQ(tcc5.Resume(), Error::kOk);
 }
 
 TEST_F(TimerTest, StopOfATimerNotStartedLeavesNothingToResume) {
@@ -413,7 +462,14 @@ TEST_F(TimerTest, AttachInterruptWhileOnLeavesAPendingOverflow) {
   EXPECT_EQ(tcc5.AttachInterrupt(OnOtherTick), Error::kOk);
 
   EXPECT_EQ(TCC5.INTFLAGS, 0u);
+}
+
+TEST_F(TimerTest, AttachInterruptReplacesTheCallback) {
+  ASSERT_EQ(tcc5.Begin(1000u, OnTick), Error::kOk);
+  ASSERT_EQ(tcc5.AttachInterrupt(OnOtherTick), Error::kOk);
+
   tcc5.HandleOverflow();
+
   EXPECT_EQ(ticks, 0);
   EXPECT_EQ(other_ticks, 1);
 }
@@ -427,14 +483,21 @@ TEST_F(TimerTest, DetachInterruptBeforeBeginLeavesTheTimerToTheCore) {
             TC45_OVFINTLVL_LO_gc);
 }
 
-TEST_F(TimerTest, DetachInterruptTurnsItOffAndForgetsTheCallback) {
+TEST_F(TimerTest, DetachInterruptTurnsTheInterruptOff) {
   ASSERT_EQ(tcc5.Begin(1000u, OnTick), Error::kOk);
 
   tcc5.DetachInterrupt();
 
   EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
             TC45_OVFINTLVL_OFF_gc);
+}
+
+TEST_F(TimerTest, DetachInterruptForgetsTheCallback) {
+  ASSERT_EQ(tcc5.Begin(1000u, OnTick), Error::kOk);
+  tcc5.DetachInterrupt();
+
   tcc5.HandleOverflow();
+
   EXPECT_EQ(ticks, 0);
 }
 
@@ -510,7 +573,7 @@ TEST_F(TimerTest, ReadAtTheLargestPrescalerCountsEachTick) {
   EXPECT_EQ(elapsed.value(), 96u);
 }
 
-TEST_F(TimerTest, ReadOfAStoppedTimer) {
+TEST_F(TimerTest, ReadOfAStoppedTimerGivesTheTimeWhereItStopped) {
   ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
   ASSERT_EQ(tcc5.Start(), Error::kOk);
   tcc5.Stop();
@@ -520,6 +583,19 @@ TEST_F(TimerTest, ReadOfAStoppedTimer) {
 
   ASSERT_EQ(elapsed.status(), Error::kOk);
   EXPECT_EQ(elapsed.value(), 100u);
+}
+
+TEST_F(TimerTest, ReadAtTheEndOfTheLongestPeriodStaysWithin32Bits) {
+  ASSERT_EQ(tcc5.Begin(4194303u), Error::kOk);
+  ASSERT_EQ(tcc5.Start(), Error::kOk);
+  TCC5.CNT = 0u;
+  TCC5.CTRLGSET.SetCountingDown(true);
+
+  Result<uint32_t> const elapsed{tcc5.Read()};
+
+  ASSERT_EQ(elapsed.status(), Error::kOk);
+  // 2 * 65535 ticks of 32 us.
+  EXPECT_EQ(elapsed.value(), 4194240u);
 }
 
 struct ReadCase {
