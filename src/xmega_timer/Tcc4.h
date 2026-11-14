@@ -130,8 +130,13 @@ struct Tcc4Traits::CompareChannel<Channel::kD> {
 /*! \brief The type of tcc4. */
 using Tcc4 = Timer<Tcc4Traits>;
 
-/*! \brief TCC4, the one Timer of the TC4 of port C. */
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): M-5
+/*!
+ * \brief TCC4, the one Timer of the TC4 of port C.
+ *
+ * Made when compiling, by the constexpr constructor of Timer, so that it needs
+ * no code at start (CodingStyle M-5).
+ */
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,bugprone-dynamic-static-initializers)
 extern Tcc4 tcc4;
 
 }  // namespace xmega_timer

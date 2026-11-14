@@ -11,7 +11,7 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 | # | Item | Depends on | Status | PR |
 |---|------|------------|--------|----|
 | 1 | On the template embedded-cpp-template | – | done | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
-| 2 | What the template is to take over from 1 | 1 | in progress | [#6](https://github.com/theAndreas/XmegaTimer/pull/6) |
+| 2 | What the template is to take over from 1 | 1 | done | [#6](https://github.com/theAndreas/XmegaTimer/pull/6), [#8](https://github.com/theAndreas/XmegaTimer/pull/8) |
 | 3 | A new prescaler waits for BOTTOM as the period does | 1 | done | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
 | 4 | Version 0.2.0: a namespace, constants for macros, the template's checks | 3 | done | [#7](https://github.com/theAndreas/XmegaTimer/pull/7) |
 | 5 | Run on an ATxmega32E5 | 1 | open | |
@@ -60,7 +60,8 @@ What bringing in XmegaTimer found in the template, for embedded-cpp-template:
   make one. With every check on for the examples (OIL 4), a sketch that uses `Serial` is told that
   no header provides it, as `Serial` comes from `cores/xmega/HardwareSerial.h`; the measurement on
   `Basics` was too narrow, as it used nothing of the core then. The template is to name any core's
-  headers, `.*/cores/[^/]+/.*`, as it does for the warnings.
+  headers, `.*/cores/[^/]+/.*`, as it does for the warnings. *Taken over* in v0.10.0
+  ([embedded-cpp-template#81](https://github.com/theAndreas/embedded-cpp-template/pull/81)).
 
 ### 3 A new prescaler waits for BOTTOM as the period does
 

@@ -94,8 +94,13 @@ struct Tcc5Traits::CompareChannel<Channel::kB> {
 /*! \brief The type of tcc5. */
 using Tcc5 = Timer<Tcc5Traits>;
 
-/*! \brief TCC5, the one Timer of the TC5 of port C. */
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): M-5
+/*!
+ * \brief TCC5, the one Timer of the TC5 of port C.
+ *
+ * Made when compiling, by the constexpr constructor of Timer, so that it needs
+ * no code at start (CodingStyle M-5).
+ */
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,bugprone-dynamic-static-initializers)
 extern Tcc5 tcc5;
 
 }  // namespace xmega_timer
