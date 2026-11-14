@@ -13,12 +13,9 @@
 #include <stdint.h>
 
 // avr-libc's names, which the library calls, for what it reads from flash: a
-// byte, a word and a pointer to a text.
+// byte and a pointer to a text.
 // NOLINTNEXTLINE(readability-identifier-naming)
 inline uint8_t pgm_read_byte(uint8_t const* address) { return *address; }
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-inline uint16_t pgm_read_word(uint16_t const* address) { return *address; }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 inline void const* pgm_read_ptr(char const* const* address) { return *address; }

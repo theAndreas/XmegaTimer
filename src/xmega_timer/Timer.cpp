@@ -237,6 +237,7 @@ uint16_t Timer<Traits>::CompareValue(uint16_t duty) const {
 // 32 bits.
 template <typename Traits>
 uint32_t Timer<Traits>::ToMicroseconds(uint32_t cycles) const {
+  // The divisor is a power of 2: the mask of the bit of its shift.
   uint16_t const divisor{Bit<uint16_t>::ToMask(ShiftOf(prescaler_))};
   return (cycles * divisor) / internal::kCyclesPerMicrosecond;
 }
@@ -330,12 +331,12 @@ template <typename Traits>
 template <uint8_t Index>
 void Timer<Traits>::WriteCompareValues(ChannelIndex<Index> /*index*/,
                                        Target target) {
-  using Compare = CompareChannel<static_cast<Channel>(Index)>;
+  using ChannelRegisters = CompareChannel<static_cast<Channel>(Index)>;
   uint16_t const value{CompareValue(duties_[Index])};
   if (target == Target::kBuffer) {
-    Compare::Buffer() = value;
+    ChannelRegisters::Buffer() = value;
   } else {
-    Compare::Compare() = value;
+    ChannelRegisters::Compare() = value;
   }
   WriteCompareValues(ChannelIndex<static_cast<uint8_t>(Index + 1u)>{}, target);
 }

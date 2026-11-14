@@ -317,6 +317,9 @@ class Timer {
   template <Channel Which>
   using CompareChannel = typename Traits::template CompareChannel<Which>;
 
+  // The prescaler the timer counts at, by its place in the table of Timer.cpp.
+  using PrescalerIndex = uint8_t;
+
   // A channel by its place, to go through all of them when compiling: each
   // has registers of its own, which no index reaches at run time.
   template <uint8_t Index>
@@ -353,9 +356,6 @@ class Timer {
   }
   // GCOVR_EXCL_STOP
 
-  // The prescaler the timer counts at, by its place in the table of Timer.cpp.
-  using PrescalerIndex = uint8_t;
-
   uint16_t CompareValue(uint16_t duty) const;
   uint32_t ToMicroseconds(uint32_t cycles) const;
   void TakeOverPrescaler();
@@ -373,6 +373,10 @@ class Timer {
 
   State state_{State::kNotBegun};
   PrescalerIndex prescaler_{0u};
+  // Read by the interrupt, written in an ATOMIC_BLOCK, whose memory barrier
+  // keeps the write where it stands; the interrupt reads it anew each time it
+  // runs. Not volatile (CodingStyle H-6): a volatile member would make Timer
+  // no literal type, and tcc4 and tcc5 would need code at start (M-5).
   Callback callback_{nullptr};
   // What PER and the compare channels are meant to hold. Kept here rather than
   // read back from the registers, because a value on its way through a buffer
