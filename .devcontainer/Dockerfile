@@ -10,15 +10,16 @@ ARG BASE_IMAGE=mcr.microsoft.com/devcontainers/cpp:ubuntu26.04
 FROM ${BASE_IMAGE}
 
 # CMake, Ninja and GoogleTest build and run the tests on the host, clang a second time beside
-# the base image's g++ (make clang); simavr runs examples/SelfCheck as the board would
-# (tools/self_check.sh); jq writes the compilation database of tools/tidy.sh; Doxygen builds
-# the reference (tools/docs.sh), and cppcheck reads the library beside clang-tidy
-# (tools/cppcheck.sh); neither of the two is on PyPI. From apt
-# rather than pinned like the tools below: the distribution's versions are what CI installs
-# as well, and none of them has a bug that forces a newer release.
+# the base image's g++ (make clang), and with its runtime libraries, libFuzzer and the
+# sanitizers, which clang only recommends, the fuzzers (make fuzz); simavr runs
+# examples/SelfCheck as the board would (tools/self_check.sh); jq writes the compilation database
+# of tools/tidy.sh; Doxygen builds the reference (tools/docs.sh), and cppcheck reads the library
+# beside clang-tidy (tools/cppcheck.sh); neither of the two is on PyPI. From apt rather than
+# pinned like the tools below: the distribution's versions are what CI installs as well, and
+# none of them has a bug that forces a newer release.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        cmake ninja-build libgtest-dev clang simavr jq doxygen cppcheck && \
+        cmake ninja-build libgtest-dev clang libclang-rt-dev simavr jq doxygen cppcheck && \
     rm -rf /var/lib/apt/lists/*
 
 # arduino-cli compiles the library and its examples with the real Arduino AVR core, which
@@ -174,15 +175,18 @@ RUN printf '# SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU\n%s %s\n%s %s\n
 
 # The project's own packages, from apt-packages.txt beside this file, which the project's
 # workflows install as well. Last, so that a change to the list builds this layer alone and none
-# of the downloads above. Nothing to do for an empty list.
-COPY apt-packages.txt /tmp/apt-packages.txt
-RUN packages="$(sed -e 's/#.*//' /tmp/apt-packages.txt | xargs)" && \
+# of the downloads above. Nothing to do for an empty list, nor without one: the template's
+# repository builds this Dockerfile for its own container and has the list only as a template.
+# The folder is copied, not the file, which a COPY could not leave out where it is missing.
+COPY . /tmp/devcontainer/
+RUN list=/tmp/devcontainer/apt-packages.txt && \
+    packages="$(if [ -f "${list}" ]; then sed -e 's/#.*//' "${list}" | xargs; fi)" && \
     if [ -n "${packages}" ]; then \
         apt-get update && \
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ${packages} && \
         rm -rf /var/lib/apt/lists/*; \
     fi && \
-    rm /tmp/apt-packages.txt
+    rm -rf /tmp/devcontainer
 
 ENV TZ=Europe/Berlin
 
