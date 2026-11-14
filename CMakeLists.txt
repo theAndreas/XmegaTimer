@@ -22,10 +22,10 @@ include(GoogleTest)
 
 # Recursive, as a module has a folder of its own (docs/CodingStyle.md F-12). A test is named as
 # the class it tests and Test, or a family of functions and _test (Testing.md TS-5); the mock
-# and the cases of what must not compile are no tests of their own.
+# and the cases of what must not compile or must warn are no tests of their own.
 file(GLOB_RECURSE library_sources CONFIGURE_DEPENDS src/xmega_timer/*.cpp)
 file(GLOB_RECURSE test_sources CONFIGURE_DEPENDS test/*Test.cpp test/*_test.cpp)
-list(FILTER test_sources EXCLUDE REGEX "/test/(mock|compile_fail)/")
+list(FILTER test_sources EXCLUDE REGEX "/test/(mock|compile_fail|compile_warn)/")
 
 # One library and one test program per variant: a switch that changes what is compiled makes
 # a build of its own. A variant is added with its defines, as add_variant(tcc4 DEFINES
@@ -60,4 +60,6 @@ add_variant(default)
 add_variant(tcc4 DEFINES XMEGATIMER_USE_TCC4=1)
 
 add_compile_fail_tests(DIRECTORY ${CMAKE_SOURCE_DIR}/test/compile_fail STANDARD gnu++11
+                       INCLUDES ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/test/mock)
+add_compile_warn_tests(DIRECTORY ${CMAKE_SOURCE_DIR}/test/compile_warn STANDARDS gnu++11 c++17
                        INCLUDES ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/test/mock)
