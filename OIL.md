@@ -100,11 +100,11 @@ API changes.
   whether the library defines a timer's interrupt vector, which the core's `tone()` defines as
   well.
 
-Until then `src/` holds both: the code from before the template in `src/` itself, and in
-`src/xmega_timer/` the template's `Bit.h` and `attributes.h`, which only the tests use so far.
-With this version the timer reads and writes every bit through `Bit` (CodingStyle H-9), and
-`readBitGroup()` and `writeBitGroup()` go with `StandardTypes.h`, as `Bit::ReadBitGroup()` and
-`Bit::WriteBitGroup()` do the same.
+The code from before the template went with it: `src/` holds only `XmegaTimer.h`, and the
+library lies in `src/xmega_timer/`, where the timer reads and writes every bit through `Bit`
+(CodingStyle H-9) and `StandardTypes.h` with its `readBitGroup()` and `writeBitGroup()` is gone.
+Before `Begin()` a call refuses with `Error::kNotBegun` or does nothing, as the timer may still be
+the core's; in 0.1.0 most of them wrote into it.
 
 ### 5 Run on an ATxmega32E5
 
