@@ -11,7 +11,7 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 | # | Item | Depends on | Status | PR |
 |---|------|------------|--------|----|
 | 1 | On the template embedded-cpp-template | – | done | [#2](https://github.com/theAndreas/XmegaTimer/pull/2) |
-| 2 | What the template is to take over from 1 | 1 | in progress | [#6](https://github.com/theAndreas/XmegaTimer/pull/6) |
+| 2 | What the template is to take over from 1 | 1 | done | [#6](https://github.com/theAndreas/XmegaTimer/pull/6) |
 | 3 | A new prescaler waits for BOTTOM as the period does | 1 | done | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
 | 4 | Version 2.0.0: a namespace, constants for macros, the template's checks | 3 | open | |
 | 5 | Run on an ATxmega32E5 | 1 | open | |
@@ -56,7 +56,9 @@ What bringing in XmegaTimer found in the template, for embedded-cpp-template:
   `cores/arduino/` alone, as the warnings filter did; XMegaForArduino's lie in `cores/xmega/`.
   Whether that matters is open: XmegaTimer does not notice, as `examples/.clang-tidy` turns
   `misc-*` off until 2.0.0 (OIL 4), and on `Basics` the check reports the same, one `uint32_t`
-  not included directly, whether any core is ignored or only `cores/arduino/`.
+  not included directly, whether any core is ignored or only `cores/arduino/`. *Dropped*: it
+  makes no difference that can be shown, and OIL 4 turns `misc-*` on in the examples, where
+  one that does would come up.
 
 ### 3 A new prescaler waits for BOTTOM as the period does
 
