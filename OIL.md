@@ -42,7 +42,9 @@ before, or differ by what a commit names.
 What bringing in XmegaTimer found in the template, for embedded-cpp-template:
 
 - `tools/compile_examples.sh` let only the warnings of `cores/arduino/` pass; XMegaForArduino's
-  core warns in `cores/xmega/`. XmegaTimer's copy lets any core's pass, `/cores/[^/]+/`.
+  core warns in `cores/xmega/`. XmegaTimer's copy lets any core's pass, `/cores/[^/]+/`. Since
+  v0.8.0 the template checks the warnings in `tools/lib/arduino_cli.sh`, still against
+  `cores/arduino/` alone, and XmegaTimer's filter is there.
 - The presets `sanitize` and `coverage` have no `ci-` twin, so a warning there does not fail
   `make check`: `-Wconversion` reported `toMicroseconds()` under the sanitizers only, and the
   check passed.
