@@ -84,6 +84,9 @@ Status Timer<Traits>::Begin(uint32_t microseconds, Callback callback) {
   if (state_ != State::kNotBegun) {
     return Error::kBegunAlready;
   }
+  // Begun from here on, so that SetPeriod() below takes the period; before
+  // Start() it restarts nothing.
+  state_ = State::kBegun;
   // The core leaves TC4 and TC5 in byte mode with a running clock for
   // analogWrite(), so stop it and start from the reset values rather than
   // only changing the waveform mode.
@@ -96,12 +99,15 @@ Status Timer<Traits>::Begin(uint32_t microseconds, Callback callback) {
   if (callback != nullptr) {
     EnableOverflowInterrupt(callback);
   }
-  state_ = State::kBegun;
   return period;
 }
 
 template <typename Traits>
 Status Timer<Traits>::SetPeriod(uint32_t microseconds) {
+  // Before Begin() the timer may still be the core's, running analogWrite().
+  if (state_ == State::kNotBegun) {
+    return Error::kNotBegun;
+  }
   bool const in_range{microseconds > 0u && microseconds <= kPeriodMax};
   if (!in_range) {
     return Error::kPeriodOutOfRange;
@@ -168,6 +174,9 @@ Status Timer<Traits>::Resume() {
 
 template <typename Traits>
 Status Timer<Traits>::AttachInterrupt(Callback callback) {
+  if (state_ == State::kNotBegun) {
+    return Error::kNotBegun;
+  }
   if (callback == nullptr) {
     return Error::kNoCallback;
   }
@@ -177,6 +186,9 @@ Status Timer<Traits>::AttachInterrupt(Callback callback) {
 
 template <typename Traits>
 void Timer<Traits>::DetachInterrupt() {
+  if (state_ == State::kNotBegun) {
+    return;
+  }
   Bits::WriteBitGroup(Traits::Registers().INTCTRLA, TC4_OVFINTLVL_gm,
                       TC45_OVFINTLVL_OFF_gc);
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { callback_ = nullptr; }

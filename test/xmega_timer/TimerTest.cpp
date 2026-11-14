@@ -119,6 +119,18 @@ INSTANTIATE_TEST_SUITE_P(
       return std::string{case_info.param.name};
     });
 
+TEST_F(TimerTest, SetPeriodBeforeBeginIsRefusedAndLeavesTheTimerToTheCore) {
+  // The core leaves the timer running for analogWrite().
+  TCC5.CTRLA = TC45_CLKSEL_DIV64_gc;
+
+  EXPECT_EQ(tcc5.SetPeriod(2000u), Error::kNotBegun);
+
+  // Its value after reset.
+  EXPECT_EQ(TCC5.PERBUF, 0xFFFFu);
+  EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV64_gc);
+  EXPECT_TRUE(TCC5.CTRLGSET.Commands().empty());
+}
+
 TEST_F(TimerTest, SetPeriodOfZeroIsRefusedAndChangesNothing) {
   ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
 
@@ -354,6 +366,16 @@ TEST_F(TimerTest, ResumeOfARunningTimerIsRefused) {
   EXPECT_EQ(ClockSelect(TCC5), TC45_CLKSEL_DIV1_gc);
 }
 
+TEST_F(TimerTest, AttachInterruptBeforeBeginIsRefused) {
+  EXPECT_EQ(tcc5.AttachInterrupt(OnTick), Error::kNotBegun);
+
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_OFF_gc);
+  EXPECT_EQ(PMIC.CTRL, 0u);
+  tcc5.HandleOverflow();
+  EXPECT_EQ(ticks, 0);
+}
+
 TEST_F(TimerTest, AttachInterruptOfNullptrIsRefused) {
   ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
 
@@ -384,6 +406,15 @@ TEST_F(TimerTest, AttachInterruptWhileOnLeavesAPendingOverflow) {
   tcc5.HandleOverflow();
   EXPECT_EQ(ticks, 0);
   EXPECT_EQ(other_ticks, 1);
+}
+
+TEST_F(TimerTest, DetachInterruptBeforeBeginLeavesTheTimerToTheCore) {
+  TCC5.INTCTRLA = TC45_OVFINTLVL_LO_gc;
+
+  tcc5.DetachInterrupt();
+
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.INTCTRLA, TC4_OVFINTLVL_gm),
+            TC45_OVFINTLVL_LO_gc);
 }
 
 TEST_F(TimerTest, DetachInterruptTurnsItOffAndForgetsTheCallback) {
@@ -522,6 +553,15 @@ INSTANTIATE_TEST_SUITE_P(
       return std::string{case_info.param.name};
     });
 
+TEST_F(TimerTest, EnablePwmBeforeBeginIsRefusedAndChangesNothing) {
+  EXPECT_EQ(tcc5.EnablePwm<Channel::kA>(512u), Error::kNotBegun);
+
+  EXPECT_EQ(PORTC.DIRSET, 0u);
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.CTRLE, TC5_CCAMODE_gm),
+            TC45_CCAMODE_DISABLE_gc);
+  EXPECT_EQ(TCC5.CCABUF, 0u);
+}
+
 TEST_F(TimerTest, EnablePwmAboveTheLargestDutyIsRefusedAndChangesNothing) {
   ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
 
@@ -560,6 +600,12 @@ TEST_F(TimerTest, SetPwmDutyGoesThroughTheBuffer) {
   EXPECT_EQ(TCC5.CCA, 0u);
 }
 
+TEST_F(TimerTest, SetPwmDutyBeforeBeginIsRefusedAndChangesNothing) {
+  EXPECT_EQ(tcc5.SetPwmDuty<Channel::kA>(512u), Error::kNotBegun);
+
+  EXPECT_EQ(TCC5.CCABUF, 0u);
+}
+
 TEST_F(TimerTest, SetPwmDutyAboveTheLargestIsRefusedAndChangesNothing) {
   ASSERT_EQ(tcc5.Begin(1000u), Error::kOk);
   ASSERT_EQ(tcc5.EnablePwm<Channel::kB>(512u), Error::kOk);
@@ -568,6 +614,16 @@ TEST_F(TimerTest, SetPwmDutyAboveTheLargestIsRefusedAndChangesNothing) {
             Error::kDutyOutOfRange);
 
   EXPECT_EQ(TCC5.CCBBUF, 8000u);
+}
+
+TEST_F(TimerTest, DisablePwmBeforeBeginLeavesTheTimerToTheCore) {
+  // The core drives the channel for analogWrite().
+  TCC5.CTRLE = TC45_CCAMODE_COMP_gc;
+
+  tcc5.DisablePwm<Channel::kA>();
+
+  EXPECT_EQ(Bits::ReadBitGroup(TCC5.CTRLE, TC5_CCAMODE_gm),
+            TC45_CCAMODE_COMP_gc);
 }
 
 TEST_F(TimerTest, DisablePwmLeavesThePinAnOutput) {

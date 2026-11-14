@@ -59,7 +59,9 @@ does not have — `EnablePwm<Channel::kC>()` on `tcc5` — is a compile error.
 ## When a call refuses
 
 A call that can refuse returns a `Status`, or a `Result` where it has a value, as `Read()`, and
-leaves the timer as it was. `IsOk()` says whether it did what it was asked, a comparison with an
+leaves the timer as it was, unless its documentation says otherwise. Before `Begin()` every call
+refuses with `Error::kNotBegun`, or does nothing where it returns nothing, as the timer may still
+be the core's then. `IsOk()` says whether it did what it was asked, a comparison with an
 `Error` why not, and `ErrorText()` says it as a text for `Serial`:
 
 ```cpp

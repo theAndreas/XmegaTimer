@@ -148,8 +148,9 @@ class Timer {
    * to 0 the same way and stays stopped; Resume() begins the new period.
    *
    * \param[in] microseconds The period, 1 to kPeriodMax.
-   * \return Error::kPeriodOutOfRange if the period is out of range; nothing
-   *         changes then.
+   * \return Error::kNotBegun before Begin(), as the timer may still be the
+   *         core's then; Error::kPeriodOutOfRange if the period is out of
+   *         range. Nothing changes then.
    */
   XMEGATIMER_NODISCARD Status SetPeriod(uint32_t microseconds);
 
@@ -189,11 +190,16 @@ class Timer {
    * the callback is not called at once.
    *
    * \param[in] callback What the interrupt calls.
-   * \return Error::kNoCallback if it is nullptr; nothing changes then.
+   * \return Error::kNotBegun before Begin(), Error::kNoCallback if it is
+   *         nullptr; nothing changes then.
    */
   XMEGATIMER_NODISCARD Status AttachInterrupt(Callback callback);
 
-  /*! \brief Disables the overflow interrupt and forgets the callback. */
+  /*!
+   * \brief Disables the overflow interrupt and forgets the callback.
+   *
+   * Does nothing before Begin(): the timer may still be the core's then.
+   */
   void DetachInterrupt();
 
   /*!
@@ -213,8 +219,8 @@ class Timer {
    *
    * \tparam Which The compare channel.
    * \param[in] duty 0 to kPwmDutyMax, the share of the period.
-   * \return Error::kDutyOutOfRange if the duty is above kPwmDutyMax; nothing
-   *         changes then.
+   * \return Error::kNotBegun before Begin(), Error::kDutyOutOfRange if the duty
+   *         is above kPwmDutyMax; nothing changes then.
    */
   template <Channel Which>
   XMEGATIMER_NODISCARD Status EnablePwm(uint16_t duty) {
@@ -235,12 +241,15 @@ class Timer {
    *
    * \tparam Which The compare channel.
    * \param[in] duty 0 to kPwmDutyMax, the share of the period.
-   * \return Error::kDutyOutOfRange if the duty is above kPwmDutyMax; nothing
-   *         changes then.
+   * \return Error::kNotBegun before Begin(), Error::kDutyOutOfRange if the duty
+   *         is above kPwmDutyMax; nothing changes then.
    */
   template <Channel Which>
   XMEGATIMER_NODISCARD Status SetPwmDuty(uint16_t duty) {
     static_assert(HasChannel(Which), "this timer has no such compare channel");
+    if (state_ == State::kNotBegun) {
+      return Error::kNotBegun;
+    }
     if (duty > kPwmDutyMax) {
       return Error::kDutyOutOfRange;
     }
@@ -252,11 +261,16 @@ class Timer {
    * \brief Takes a compare channel's pin from the PWM; the pin stays an output
    *        and shows its value of PORT.OUT.
    *
+   * Does nothing before Begin(): the timer may still be the core's then.
+   *
    * \tparam Which The compare channel.
    */
   template <Channel Which>
   void DisablePwm() {
     static_assert(HasChannel(Which), "this timer has no such compare channel");
+    if (state_ == State::kNotBegun) {
+      return;
+    }
     Bits::WriteBitGroup(Traits::Registers().CTRLE,
                         CompareChannel<Which>::kModeMask,
                         CompareChannel<Which>::kModeDisable);
