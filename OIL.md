@@ -50,6 +50,11 @@ What bringing in XmegaTimer found in the template, for embedded-cpp-template:
   check passed.
 - A third-party core whose platform takes its compiler from another core's tools needs both;
   `prepare()` installs the second. `ARDUINO_CORE` could take a list instead.
+- `misc-include-cleaner.IgnoreHeaders` in `.clang-tidy` names the core's headers by
+  `cores/arduino/` alone, as the warnings filter did; XMegaForArduino's lie in `cores/xmega/`.
+  Whether that matters is open: XmegaTimer does not notice, as `examples/.clang-tidy` turns
+  `misc-*` off until 2.0.0 (OIL 4), and on `Basics` the check reports the same, one `uint32_t`
+  not included directly, whether any core is ignored or only `cores/arduino/`.
 
 ### 3 A new prescaler waits for BOTTOM as the period does
 
