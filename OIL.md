@@ -110,5 +110,5 @@ the core's; in 0.1.0 most of them wrote into it.
 ### 5 Run on an ATxmega32E5
 
 XmegaTimer was never run on the chip. An example that checks itself on the board, the periods,
-the PWM on PC4 and PC5 and `read()`, and its output in the README; with TCC4 as well, in a sketch
+the PWM on PC4 and PC5 and `Read()`, and its output in the README; with TCC4 as well, in a sketch
 without `tone()`.
