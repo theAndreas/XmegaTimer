@@ -15,6 +15,7 @@ Status: `open`, `in progress`, `done`, `dropped` (with the reason in the item).
 | 3 | A new prescaler waits for BOTTOM as the period does | 1 | done | [#3](https://github.com/theAndreas/XmegaTimer/pull/3) |
 | 4 | Version 0.2.0: a namespace, constants for macros, the template's checks | 3 | done | [#7](https://github.com/theAndreas/XmegaTimer/pull/7) |
 | 5 | Run on an ATxmega32E5 | 1 | open | |
+| 6 | The API of AtmegaTimer where the timers are alike | 4 | open | |
 
 ### 1 On the template embedded-cpp-template
 
@@ -110,5 +111,37 @@ the core's; in 0.1.0 most of them wrote into it.
 ### 5 Run on an ATxmega32E5
 
 XmegaTimer was never run on the chip. An example that checks itself on the board, the periods,
-the PWM on PC4 and PC5 and `read()`, and its output in the README; with TCC4 as well, in a sketch
+the PWM on PC4 and PC5 and `Read()`, and its output in the README; with TCC4 as well, in a sketch
 without `tone()`.
+
+### 6 The API of AtmegaTimer where the timers are alike
+
+XmegaTimer 0.2.0 and AtmegaTimer 2.0.0 (its `PhaseCorrectPwm`) share their form: a class template
+over traits, global timers, `Begin()`, `SetPeriod()`, `Start()`, `Resume()`, `AttachInterrupt()`,
+`DetachInterrupt()`, `Read()`, the PWM by a channel as template argument, a duty of 0 to 1023,
+`Status`, `Result` and `Error`. A sketch that only asks `IsOk()` moves from one to the other by
+its namespace and its timer. One that asks for an error, or keeps one as a number, does not:
+
+- `Stop()` returns nothing here, a `Status` there, `Error::kNotRunning` when the timer does not
+  run; `Discard(timer.Stop())` does not compile here.
+- `Start()` on a running timer starts it again from 0 here, and refuses with `Error::kRunning`
+  there.
+- The errors differ: `kNotStarted` here, `kRunning` and `kNotRunning` there; and `kDutyOutOfRange`
+  and `kNoCallback` stand in the opposite order, so that the same error has another number.
+- The largest duty is `Timer<Traits>::kPwmDutyMax` here and `atmega_timer::kDutyMax` there, the
+  same on every timer.
+- Before `Begin()` every call here refuses with `Error::kNotBegun` or does nothing, as the timer
+  may still be the core's; there, `Resume()` refuses with `kNotStopped` and `AttachInterrupt()`
+  takes the callback.
+- AtmegaTimer has `GetState()` and `GetCallback()`; XmegaTimer has neither.
+- The period is a `uint32_t` here, and the timer's `TimeType` there, which is narrower on Timer2.
+
+What stays apart, as the chips differ: the channels C and D of TC4, the mode `Ctc` of AtmegaTimer,
+and the name of the routine the interrupt calls.
+
+Open: which library changes, item by item. XmegaTimer is below 1.0 and may break its API in a
+minor version; AtmegaTimer would need a 3.0.0. Whether the shared part belongs in a library of its
+own, or in the template, is open with it.
+
+*Done when* each difference above is either gone, in both libraries, or named in both READMEs as
+what a sketch changes when it moves.
