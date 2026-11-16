@@ -9,13 +9,28 @@
 #   CHECK_WARNINGS     the warnings, for target_compile_options(); errors only where
 #                      CMAKE_COMPILE_WARNING_AS_ERROR is on, as the ci- presets set it
 #   CHECK_INSTRUMENT   --coverage, or the sanitizers, for the compile and the link options
-#   add_compile_fail_tests(DIRECTORY dir STANDARD std INCLUDES dir...)
+#   add_compile_fail_tests(DIRECTORY dir STANDARDS std... INCLUDES dir...)
 #   add_compile_warn_tests(DIRECTORY dir STANDARDS std... INCLUDES dir...)
 #   add_fuzzers(DIRECTORY dir LIBRARY target)
 
 option(XMEGATIMER_COVERAGE "Build with --coverage, for gcovr" OFF)
 option(XMEGATIMER_SANITIZE "Build with AddressSanitizer and UBSan" OFF)
 option(XMEGATIMER_FUZZ "Build the fuzzers of test/fuzz/, with libFuzzer, ASan and UBSan" OFF)
+
+# ccache where it is installed, as in the dev container, so that a build that compiles what an
+# earlier one compiled, in another clone, worktree or build folder, takes it from the cache. Paths
+# below the source folder are hashed relative to it (base_dir), and written so into the debug
+# information and __FILE__ (-ffile-prefix-map): with -g, ccache otherwise hashes the absolute
+# folder, and no other worktree ever hits. A debugger finds the sources from the project's root.
+# Not under --coverage, whose notes need the absolute paths for gcovr; ccache hits there only in
+# the same folder. A launcher set by the caller wins.
+find_program(CHECK_CCACHE ccache)
+if(CHECK_CCACHE AND NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
+  set(CMAKE_CXX_COMPILER_LAUNCHER ${CHECK_CCACHE} base_dir=${CMAKE_SOURCE_DIR})
+  if(NOT XMEGATIMER_COVERAGE)
+    add_compile_options(-ffile-prefix-map=${CMAKE_SOURCE_DIR}/=)
+  endif()
+endif()
 
 # -Wconversion and -Wsign-conversion above all: an int has 16 bits on the AVR, and a
 # conversion that is harmless on the host can lose a value there. Braced initialization finds
@@ -50,6 +65,10 @@ if(XMEGATIMER_FUZZ)
   endif()
   list(APPEND CHECK_INSTRUMENT -fsanitize=fuzzer-no-link,address,undefined
        -fno-sanitize-recover=all -fno-omit-frame-pointer)
+  # What the preset fuzz builds: the fuzzers of add_fuzzers() and nothing else, as the other
+  # presets build and run the tests. Here rather than in add_fuzzers(), so that a project that
+  # calls it nowhere builds nothing instead of failing on a target it lacks.
+  add_custom_target(xmega_timer_fuzzers)
 endif()
 
 # What must not compile: each .cpp file in DIRECTORY uses the library wrongly, and its test
@@ -59,10 +78,17 @@ endif()
 # evaluation, as one does that a value which does not fit calls; no static_assert can test a
 # function's argument. A stop that went missing, or another error, fails it, so the line names
 # what only the intended stop says. The compiler is called directly, with -fsyntax-only and in
-# STANDARD, as avr-gcc builds a sketch: no target, so that tests run in parallel never build in
-# the same tree at once.
+# each of STANDARDS, as avr-gcc builds a sketch and as the tests are built: a check may differ
+# between them, as one that leans on a rule of C++17. No target, so that tests run in parallel
+# never build in the same tree at once.
 function(add_compile_fail_tests)
-  cmake_parse_arguments(PARSE_ARGV 0 arg "" "DIRECTORY;STANDARD" "INCLUDES")
+  cmake_parse_arguments(PARSE_ARGV 0 arg "" "DIRECTORY" "STANDARDS;INCLUDES")
+  # STANDARD, of one standard, was its keyword up to v0.10.1, and CMakeLists.txt is the
+  # project's, which an update leaves as it is: such a call would make no test at all.
+  if(arg_UNPARSED_ARGUMENTS OR NOT arg_STANDARDS)
+    message(FATAL_ERROR "add_compile_fail_tests() takes STANDARDS std..., as "
+                        "add_compile_warn_tests() does, not: ${arg_UNPARSED_ARGUMENTS}")
+  endif()
   set(includes)
   foreach(dir IN LISTS arg_INCLUDES)
     list(APPEND includes -I${dir})
@@ -75,17 +101,19 @@ function(add_compile_fail_tests)
     if(expected STREQUAL "")
       message(FATAL_ERROR "${case} names no message: a line \"// Expected: \".")
     endif()
-    add_test(NAME compile_fail/${name}
-             COMMAND ${CMAKE_CXX_COMPILER} -std=${arg_STANDARD} -fsyntax-only
-                     ${includes} ${case})
-    # GCC says "error: static assertion failed: <message>", Clang "error: static assertion
-    # failed due to requirement '...': <message>", both on one line. Of a function that is not
-    # constexpr, GCC names it in the error, Clang in a note below. Not in the lines of source
-    # both print, which start with a number: they show the case's own text.
-    set_tests_properties(
-      compile_fail/${name}
-      PROPERTIES PASS_REGULAR_EXPRESSION
-                 "(error|note): [^\n]*${expected}")
+    foreach(standard IN LISTS arg_STANDARDS)
+      add_test(NAME compile_fail/${name}/${standard}
+               COMMAND ${CMAKE_CXX_COMPILER} -std=${standard} -fsyntax-only
+                       ${includes} ${case})
+      # GCC says "error: static assertion failed: <message>", Clang "error: static assertion
+      # failed due to requirement '...': <message>", both on one line. Of a function that is
+      # not constexpr, GCC names it in the error, Clang in a note below. Not in the lines of
+      # source both print, which start with a number: they show the case's own text.
+      set_tests_properties(
+        compile_fail/${name}/${standard}
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "(error|note): [^\n]*${expected}")
+    endforeach()
   endforeach()
 endfunction()
 
@@ -124,7 +152,8 @@ endfunction()
 # The fuzzers: each <Name>Fuzz.cpp or <name>_fuzz.cpp of DIRECTORY defines LLVMFuzzerTestOneInput()
 # and becomes the program <Name> in fuzz/ of the build, linked with LIBRARY and libFuzzer, under
 # ASan and UBSan, so that what a fuzzer finds is a crash, a read out of bounds or undefined
-# behaviour. Only with XMEGATIMER_FUZZ on; tools/fuzz.sh runs them.
+# behaviour. Only with XMEGATIMER_FUZZ on, each a dependency of xmega_timer_fuzzers;
+# tools/fuzz.sh runs them.
 function(add_fuzzers)
   cmake_parse_arguments(PARSE_ARGV 0 arg "" "DIRECTORY;LIBRARY" "")
   if(NOT XMEGATIMER_FUZZ)
@@ -134,6 +163,7 @@ function(add_fuzzers)
   foreach(source IN LISTS fuzzers)
     get_filename_component(name ${source} NAME_WE)
     add_executable(${name} ${source})
+    add_dependencies(xmega_timer_fuzzers ${name})
     target_compile_features(${name} PRIVATE cxx_std_17)
     target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR})
     target_compile_options(${name} PRIVATE ${CHECK_WARNINGS} ${CHECK_INSTRUMENT})
