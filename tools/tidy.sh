@@ -23,7 +23,9 @@
 #
 # The library is read with each target's flags, not only through the host's database: an int has
 # 16 bits on the AVR and 32 on the host, and a check that only saw the host would never meet the
-# code as the board does.
+# code as the board does. A header is read where a source includes it, and every header of src/
+# through build/tidy/headers.cpp as well, which includes them all: one that no source includes,
+# as one of templates alone, is read so too.
 #
 # A firmware of several targets has a folder of platform/ for each, and a target compiles its own
 # and leaves the others' out. So a source of src/ or examples/ is read with every target, and one
@@ -33,6 +35,11 @@
 #
 # The checks of our own, house-*, are a module of clang-tidy's that tools/lib/tidy_module.sh builds
 # from tools/lib/tidy_module/ and clang-tidy loads; the database alone does not need it.
+#
+# clang-tidy is called through tools/lib/tidy_cache.py, which skips a file that passed before on
+# the same input, preprocessed, with the same configuration and checks: a second run without a
+# change takes seconds, and one after a change reads only the files it reaches. A finding is
+# never kept, and shows on every run.
 
 set -euo pipefail
 
@@ -41,6 +48,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 readonly RUN_CLANG_TIDY=(uv run --frozen run-clang-tidy.py)
 readonly TIDY_DIR="${BUILD_DIR}/tidy"
+# Relative to the repository, as run_tidy() takes its files.
+readonly HEADERS_SOURCE="${TIDY_DIR#"${ROOT_DIR}/"}/headers.cpp"
 
 # Runs clang-tidy on the files given, with the entries the database in <dir> has for them, one
 # file per core: clang-tidy alone reads one file after the other. run-clang-tidy prints the
@@ -67,7 +76,8 @@ run_tidy() {
       else $entries end' \
     "${dir}/compile_commands.json" --args "$@" > "${selected}/compile_commands.json" ||
     return 1
-  local args=(-p "${selected}" -j "$(nproc)" -quiet -hide-progress)
+  local args=(-p "${selected}" -j "$(nproc)" -quiet -hide-progress
+    -clang-tidy-binary "${ROOT_DIR}/tools/lib/tidy_cache.py")
   if [[ -n "${MODULE}" ]]; then
     args+=("-load=${MODULE}")
   fi
@@ -75,6 +85,56 @@ run_tidy() {
     args+=("-header-filter=${header_filter}")
   fi
   "${RUN_CLANG_TIDY[@]}" "${args[@]}"
+}
+
+# Writes HEADERS_SOURCE, a file that includes every header of src/, so that clang-tidy reads a
+# header that no source includes, as one of templates alone, which the tests include but read
+# as C++17 and with a filter that leaves src/ out. One file, not one per header: each header
+# alone is what tools/self_contained_headers.py compiles, and here it would only cost time.
+# Prints nothing and writes nothing where src/ has no header.
+write_headers_source() {
+  local headers
+  headers="$(git ls-files --cached --others --exclude-standard -- 'src/*.h')"
+  if [[ -z "${headers}" ]]; then
+    return 0
+  fi
+  local header
+  {
+    echo '// Written by tools/tidy.sh: every header of src/, for clang-tidy alone.'
+    echo '// NOLINTBEGIN(misc-include-cleaner): included to be read, not used'
+    while IFS= read -r header; do
+      printf '#include "%s/%s"\n' "${ROOT_DIR}" "${header}"
+    done <<< "${headers}"
+    echo '// NOLINTEND(misc-include-cleaner)'
+  } > "${ROOT_DIR}/${HEADERS_SOURCE}"
+  echo "${HEADERS_SOURCE}"
+}
+
+# Adds to the database in <dir> an entry for HEADERS_SOURCE, with the flags of a source of src/,
+# else of an example, as a library of headers alone has no source: the flags the library is
+# compiled with on that target. An entry of an earlier run is replaced.
+# Arguments:
+#   dir
+add_headers_entry() {
+  local dir="$1"
+  local database="${dir}/compile_commands.json"
+  jq --arg root "${ROOT_DIR}" --arg headers "${ROOT_DIR}/${HEADERS_SOURCE}" '
+    def path: if (.file | startswith("/")) then .file else .directory + "/" + .file end;
+    def from($part; $suffix):
+      map(select(path | startswith($root + "/" + $part) and endswith($suffix)));
+    map(select(path != $headers))
+    | (from("src/"; ".cpp") + from("examples/"; ".ino") + from("examples/"; ".cpp")) as $library
+    | if ($library | length) == 0
+      then error("no source of src/ or examples/ in the database")
+      else . end
+    | $library[0] as $entry
+    | . + [$entry
+      | if has("arguments")
+        then .arguments |= map(if . == $entry.file or . == ($entry | path)
+                               then $headers else . end)
+        else .command |= (split($entry.file) | join($headers)) end
+      | .file = $headers]' \
+    "${database}" > "${database}.new" && mv "${database}.new" "${database}"
 }
 
 # Prints those of the files given that the database in <dir> has an entry for, one per line.
@@ -117,8 +177,14 @@ main() {
   fi
   local -A compiled=()
   MODULE=''
+  local headers=()
+  local headers_source
   if ((!database_only)); then
     MODULE="$(tools/lib/tidy_module.sh)"
+    headers_source="$(write_headers_source)"
+    if [[ -n "${headers_source}" ]]; then
+      headers=("${headers_source}")
+    fi
   fi
 
   # Each variant takes other branches of #if, and each target other ones again. The first of both
@@ -142,6 +208,9 @@ main() {
         break
       fi
       label="$(target_label "${variant}")"
+      if ((${#headers[@]} > 0)); then
+        add_headers_entry "${dir}" || failed=1
+      fi
       own=()
       if ((${#platform_sources[@]} > 0)); then
         found="$(in_database "${dir}" "${platform_sources[@]}")"
@@ -153,7 +222,7 @@ main() {
         compiled["${source}"]=1
       done
       echo "clang-tidy, ${label}:"
-      run_tidy "${dir}" '' "${sources[@]}" "${own[@]}" || failed=1
+      run_tidy "${dir}" '' "${sources[@]}" "${own[@]}" "${headers[@]}" || failed=1
     done
   done
   if ((!database_only)); then

@@ -59,7 +59,7 @@ add_variant(default)
 # TCC4, which the core's tone() and analogWrite() use, switched on: its four channels.
 add_variant(tcc4 DEFINES XMEGATIMER_USE_TCC4=1)
 
-add_compile_fail_tests(DIRECTORY ${CMAKE_SOURCE_DIR}/test/compile_fail STANDARD gnu++11
+add_compile_fail_tests(DIRECTORY ${CMAKE_SOURCE_DIR}/test/compile_fail STANDARDS gnu++11 c++17
                        INCLUDES ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/test/mock)
 add_compile_warn_tests(DIRECTORY ${CMAKE_SOURCE_DIR}/test/compile_warn STANDARDS gnu++11 c++17
                        INCLUDES ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/test/mock)
