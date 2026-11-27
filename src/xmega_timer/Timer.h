@@ -342,7 +342,7 @@ class Timer {
 
   // SetPeriod() and Read() convert with whole timer cycles per half and per
   // whole microsecond.
-  static_assert(F_CPU % (2u * internal::kMicrosecondsPerSecond) == 0u,
+  static_assert((F_CPU % (2u * internal::kMicrosecondsPerSecond)) == 0u,
                 "F_CPU has to be a multiple of 2 MHz");
 
   static constexpr uint8_t IndexOf(Channel which) {

@@ -101,8 +101,9 @@ class Bit {
      * \param[in] other The bit to copy, of this value or of another.
      * \return This bit.
      */
-    // Assigned to itself, it rewrites its own bit:
-    // NOLINTNEXTLINE(bugprone-unhandled-self-assignment,cert-oop54-cpp)
+    // Assigned to itself, it rewrites its own bit. Without the `&` of C-17, as
+    // `bits[3] = bits[4]` assigns to the temporary that operator[] returns:
+    // NOLINTNEXTLINE(bugprone-unhandled-self-assignment,cert-oop54-cpp,house-copy-move-signature)
     Reference& operator=(Reference const& other) {
       // Not = default, which would point value_ at the integer of other and
       // leave both bits as they were. No test of this == &other, which the
@@ -112,6 +113,8 @@ class Bit {
     }
 
     /*! \copydoc operator=(Reference const&) */
+    // Without the `&` of C-17, as above:
+    // NOLINTNEXTLINE(house-copy-move-signature)
     Reference& operator=(Reference&& other) noexcept {
       return *this = static_cast<bool>(other);
     }

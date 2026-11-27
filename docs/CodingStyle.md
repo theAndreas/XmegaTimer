@@ -104,15 +104,19 @@ it:
 | T-20 | An array is a class that knows its size, `std::array` or its counterpart by M-3, which does not decay to a pointer; a C array only for a string literal: `char const kName[] = "font";`. An element is reached by index, not by arithmetic on a pointer. | `modernize-avoid-c-arrays`, `cppcoreguidelines-pro-bounds-pointer-arithmetic` |
 | T-21 | A `char` is widened to a number through `unsigned char`: whether `char` has a sign depends on the target, and where it has one, a character above 127 turns negative. | `bugprone-signed-char-misuse` |
 | T-22 | A literal's suffix with the `u` in lower case and every `L` in upper case: `192u`, `1000uL`, `1LL`, `1.0L`. An `l` is read as a 1; a `U` reads as one more digit of a hexadecimal value, as in `0x04U`, where a `u` stands apart. A float's `f` is written either way. | `readability-uppercase-literal-suffix` |
+| T-23 | An operand that is itself an operation of higher precedence stands in parentheses: `(a == b) && ready`, `(x + 1) < limit`, `ready ? (a + b) : c`, `sizeof(value)`. The reader need not know the table of precedence, and an operand that moves keeps what it binds (MISRA C++:2023 8.0.1). An operand of the same precedence, `a + b + c`, needs none, nor one that is a call, a cast, a unary operator or a name, nor the operands of an assignment. | `house-operator-precedence`, `-Wparentheses`; an `#if` by review |
+| T-24 | An `if … else if` chain ends with `else`, as a `switch` has its `default` (T-15): it says what happens when no condition holds, and an empty one says in a comment why nothing does. An `if` alone needs none (MISRA C++:2023 9.4.1). | `house-else-if-without-else`; the comment by review |
+| T-25 | Unary minus only on a signed operand. On an unsigned one the result is unsigned, or signed after the promotion, by the width of the type: `-count` of a `uint8_t` is a negative `int`, of a `uint32_t` a large positive number. An operand that is to be negated is signed first, by its type or a cast: `-static_cast<int16_t>(count)` (MISRA C++:2023 8.3.1). | `house-unary-minus-unsigned` |
+| T-26 | A `for` loop counts: one counter of an integer type, declared in its head, compared in its condition with a bound the loop does not change, stepped by `++`, `--`, `+=` or `-=` a constant, and written nowhere else. A loop that does more, as one that ends at a null character, steps by a shift or stops on a second condition, is a `while`, which says that it is no count; `for (;;)` stays for a loop that ends only by `break` or `return` (MISRA C++:2023 9.5.1). | Review |
 
 T-18 in an example:
 
 ```cpp
 // Not:
-if ((now - start_ >= kInterval) && (state_ == State::kOn) && !paused_) {
+if (((now - start_) >= kInterval) && (state_ == State::kOn) && !paused_) {
 // But:
-bool const elapsed{now - start_ >= kInterval};
-bool const running{state_ == State::kOn && !paused_};
+bool const elapsed{(now - start_) >= kInterval};
+bool const running{(state_ == State::kOn) && !paused_};
 if (elapsed && running) {
 ```
 
@@ -123,7 +127,7 @@ if (elapsed && running) {
 | C-1 | `struct` for data with public members only and no invariant, `class` for everything else. | `misc-non-private-member-variables-in-classes` |
 | C-2 | The order in a class: `public`, `protected`, `private`; in each, types and constants, constructors and destructor, functions, data members. | Review |
 | C-3 | The rule of zero first. Else the rule of six: a class that declares a special member declares all six, the default constructor among them; `= default` and `= delete` count. | `cppcoreguidelines-special-member-functions` for five; the default constructor by review, until a check of our own (ROADMAP C-4) |
-| C-4 | A constructor with one argument is `explicit`, unless the conversion is meant; then a `NOLINT` says why. | cpplint `runtime/explicit` |
+| C-4 | A constructor with one argument, and a conversion operator, is `explicit`, unless the conversion is meant; then a `NOLINT` says why. | cpplint `runtime/explicit` for a constructor; a conversion operator by review |
 | C-5 | A default the same for every constructor is a member initializer (C.48); the rest is in the initializer list (C.49), never assigned in the body. | `modernize-use-default-member-init`, `cppcoreguidelines-prefer-member-initializer` |
 | C-6 | `virtual` only with its reason in a comment at the class: each class with a `virtual` function has a table, which takes RAM on some targets (see the profile), and a call through it cannot be inlined. A template, or a function reference, often does the same at no cost; the reason says why it does not here. That a test wants to replace the class is no reason: the test is handed the hardware (H-3), or the class is a parameter of a template. | Review |
 | C-7 | A base class with a `virtual` function has a public virtual or protected non-virtual destructor. | `cppcoreguidelines-virtual-class-destructor` |
@@ -135,6 +139,8 @@ if (elapsed && running) {
 | C-13 | An operator is overloaded only where its meaning is obvious: `Point + Point`, not `Point * Point`. | `misc-unconventional-assign-operator`, Review |
 | C-14 | A special member that does what the compiler's would is `= default`, not written out: `Sensor() = default;`, not `Sensor() {}`. | `modernize-use-equals-default` |
 | C-15 | An operator takes one of two forms, by what it does. A **member**: one the language makes a member (`=`, `[]`, `()`, `->`, a conversion), one that changes its operand (`+=` and its like, `++`, `--`), and a unary one (`-x`, `!x`, `~x`, `*x`). A **hidden friend**, a `friend` defined in the class with both operands as its parameters: every other binary operator, `+`, `==`, `<`, `<<`. Both operands convert alike, which a member's left one does not, and the operator is found only through its class, so it neither turns up in the overloads the compiler weighs for every other `operator==` nor in their error messages. It is built on the others where it can: `+` on `+=`, `!=` on `==`, `>`, `<=` and `>=` on `<`. An operator of an `enum`, which can have no friend, is a free function beside it; so is one of a class of another file, which cannot be its friend, as a test's `operator<<` that prints a type of the library. | `house-operator-form` |
+| C-16 | A member function that returns a reference or a pointer into its object, to a member or an element, is `&`-qualified, and its `const` overload `const&` with a `const&&` overload deleted: `Wired& GetWired() &`, `Wired const& GetWired() const&`, `Wired const& GetWired() const&& = delete;`. Called on a temporary, it would hand out a reference that dangles at the end of the statement; deleted, the call does not compile. A view, as a span, refers to what others own and is none (MISRA C++:2023 6.8.4). | Review |
+| C-17 | A copy or move function written by hand has the signature MISRA gives: `X(X const&)`, `X(X&&) noexcept`, `X& operator=(X const&) &`, `X& operator=(X&&) & noexcept`. The `&` refuses an assignment to a temporary, which compiles without it and changes nothing: `GetPoint() = origin;`. The `noexcept` says that a move cannot fail, whether a build has exceptions or not. A copy assignment takes `X const&`, not `X` by value. One that is `= default` or `= delete` where it is first declared is none written by hand. A proxy that stands for a part of another object and is assigned as a temporary, as `std::vector<bool>::reference` is, keeps its assignments without the `&`, with a `NOLINT` that says so (MISRA C++:2023 15.0.2). | `house-copy-move-signature`; the return type `misc-unconventional-assign-operator` |
 
 C-15 in an example:
 

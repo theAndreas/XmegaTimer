@@ -108,7 +108,7 @@ Status Timer<Traits>::SetPeriod(uint32_t microseconds) {
   if (state_ == State::kNotBegun) {
     return Error::kNotBegun;
   }
-  bool const in_range{microseconds > 0u && microseconds <= kPeriodMax};
+  bool const in_range{(microseconds > 0u) && (microseconds <= kPeriodMax)};
   if (!in_range) {
     return Error::kPeriodOutOfRange;
   }
@@ -213,7 +213,7 @@ Result<uint32_t> Timer<Traits>::Read() const {
     down = IsCountingDown();
   }
   // Counting down, the way back from TOP adds to the way up.
-  uint32_t const cycles{down ? (top - count) + top : count};
+  uint32_t const cycles{down ? ((top - count) + top) : count};
   return ToMicroseconds(cycles);
 }
 
@@ -253,6 +253,8 @@ void Timer<Traits>::TakeOverPrescaler() {
     RestartCounting(ClockSelectOf(prescaler_));
   } else if (state_ == State::kStopped) {
     RestartCounting(ClockSelect::kOff);
+  } else {
+    // Begun but not started: the clock is off, and Start() loads everything.
   }
 }
 
