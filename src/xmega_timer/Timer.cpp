@@ -23,8 +23,8 @@ using internal::ClockSelect;
 
 // Timer cycles per half a microsecond: the counter runs back after TOP, and
 // the interrupt is at BOTTOM, so a period is twice the cycles of TOP.
-constexpr uint32_t kCyclesPerHalfMicrosecond{
-  internal::kCyclesPerMicrosecond / 2u};
+constexpr uint32_t kCyclesPerHalfMicrosecond{internal::kCyclesPerMicrosecond /
+                                             2u};
 
 // The steps of a duty, from 0 to kPwmDutyMax: 10 bits.
 constexpr uint32_t kDutySteps{1024u};
