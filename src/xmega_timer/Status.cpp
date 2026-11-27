@@ -38,7 +38,7 @@ constexpr internal::array<char const*, 8u> kTexts PROGMEM{{
     kTextNoCallback,
 }};
 
-static_assert(kTexts.size() == static_cast<size_t>(Error::kNoCallback) + 1u,
+static_assert(kTexts.size() == (static_cast<size_t>(Error::kNoCallback) + 1u),
               "every error has a text, in the order of Error");
 
 }  // namespace

@@ -76,6 +76,11 @@
             "type": "volume"
         },
         {
+            "source": "xmega_timer-ccache",
+            "target": "/home/vscode/.cache/ccache",
+            "type": "volume"
+        },
+        {
             "source": "xmega_timer-codex",
             "target": "/home/vscode/.codex",
             "type": "volume"

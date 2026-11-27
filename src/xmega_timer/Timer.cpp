@@ -23,8 +23,8 @@ using internal::ClockSelect;
 
 // Timer cycles per half a microsecond: the counter runs back after TOP, and
 // the interrupt is at BOTTOM, so a period is twice the cycles of TOP.
-constexpr uint32_t kCyclesPerHalfMicrosecond{internal::kCyclesPerMicrosecond /
-                                             2u};
+constexpr uint32_t kCyclesPerHalfMicrosecond{
+  internal::kCyclesPerMicrosecond / 2u};
 
 // The steps of a duty, from 0 to kPwmDutyMax: 10 bits.
 constexpr uint32_t kDutySteps{1024u};
@@ -108,7 +108,7 @@ Status Timer<Traits>::SetPeriod(uint32_t microseconds) {
   if (state_ == State::kNotBegun) {
     return Error::kNotBegun;
   }
-  bool const in_range{microseconds > 0u && microseconds <= kPeriodMax};
+  bool const in_range{(microseconds > 0u) && (microseconds <= kPeriodMax)};
   if (!in_range) {
     return Error::kPeriodOutOfRange;
   }
@@ -213,7 +213,7 @@ Result<uint32_t> Timer<Traits>::Read() const {
     down = IsCountingDown();
   }
   // Counting down, the way back from TOP adds to the way up.
-  uint32_t const cycles{down ? (top - count) + top : count};
+  uint32_t const cycles{down ? ((top - count) + top) : count};
   return ToMicroseconds(cycles);
 }
 
@@ -253,6 +253,8 @@ void Timer<Traits>::TakeOverPrescaler() {
     RestartCounting(ClockSelectOf(prescaler_));
   } else if (state_ == State::kStopped) {
     RestartCounting(ClockSelect::kOff);
+  } else {
+    // Begun but not started: the clock is off, and Start() loads everything.
   }
 }
 
